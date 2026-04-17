@@ -38,7 +38,7 @@ export default function SetupScreen({ onSave }) {
           }}>
             <Icons.Wrench />
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#f1f5f9' }}>Max CRM</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#f1f5f9' }}>Dovvia CRM</h1>
           <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
             Mike's Repair Shop · AI Receptionist Dashboard
           </p>

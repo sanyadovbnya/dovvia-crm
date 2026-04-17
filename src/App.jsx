@@ -147,7 +147,7 @@ export default function App() {
           }}>
             <Icons.Wrench size={14} />
           </div>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#f1f5f9' }}>Max CRM</span>
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#f1f5f9' }}>Dovvia CRM</span>
           <span style={{ fontSize: 12, color: '#475569' }}>Mike's Repair Shop</span>
         </div>
 
