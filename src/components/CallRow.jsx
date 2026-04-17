@@ -1,11 +1,11 @@
-import { fmtDate, fmtDuration, callDuration, isBooked, getCallerName } from '../utils/formatters'
+import { fmtDate, fmtDuration, callDuration, isBooked, getCallerName, callOutputs } from '../utils/formatters'
 import { EndReasonBadge } from './Badges'
 import { Icons } from './Icons'
 
 export default function CallRow({ call, active, onClick }) {
   const name = getCallerName(call)
-  const sd = call.analysis?.structuredData || {}
-  const phone = sd.phoneNumber || call.customer?.number
+  const o = callOutputs(call)
+  const phone = o.customerPhone || call.customer?.number
   const duration = callDuration(call)
   const booked = isBooked(call)
 

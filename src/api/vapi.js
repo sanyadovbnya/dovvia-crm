@@ -15,8 +15,8 @@ export async function apiGet(key, path, params = {}) {
   return res.json()
 }
 
-export async function fetchCalls(key, { limit = 50, sortOrder = 'DESC', createdAtGt, createdAtLt } = {}) {
-  const data = await apiGet(key, '/call', { limit, sortOrder, createdAtGt, createdAtLt })
+export async function fetchCalls(key, { limit = 50, createdAtGt, createdAtLt } = {}) {
+  const data = await apiGet(key, '/call', { limit, createdAtGt, createdAtLt })
   // Vapi can return array directly or { results: [] }
   return Array.isArray(data) ? data : (data.results || data.calls || [])
 }

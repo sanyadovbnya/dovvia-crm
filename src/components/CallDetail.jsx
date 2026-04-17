@@ -1,4 +1,4 @@
-import { fmtDate, fmtDuration, callDuration, parseTranscript } from '../utils/formatters'
+import { fmtDate, fmtDuration, callDuration, parseTranscript, callOutputs } from '../utils/formatters'
 import { EndReasonBadge, AppointmentBadge } from './Badges'
 import { Icons } from './Icons'
 
@@ -35,15 +35,15 @@ function InfoRow({ label, value, icon }) {
 }
 
 export default function CallDetail({ call, onClose }) {
-  const sd = call.analysis?.structuredData || {}
-  const summary = call.analysis?.summary
+  const o = callOutputs(call)
+  const summary = o.callSummary || call.analysis?.summary
   const transcript = call.artifact?.transcript
   const recording = call.artifact?.recordingUrl
   const duration = callDuration(call)
   const messages = parseTranscript(transcript)
 
-  const hasCustomerInfo = sd.customerName || sd.phoneNumber || sd.address || call.customer?.number
-  const hasApptInfo = sd.applianceType || sd.problem || sd.timeSlot
+  const hasCustomerInfo = o.customerName || o.customerPhone || o.customerAddress || call.customer?.number
+  const hasApptInfo = o.serviceType || o.problem || o.appointmentDate || o.appointmentTime
 
   return (
     <>
@@ -75,9 +75,9 @@ export default function CallDetail({ call, onClose }) {
               Call · {fmtDate(call.createdAt)}
             </p>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>
-              {sd.customerName || call.customer?.number || 'Unknown Caller'}
+              {o.customerName || call.customer?.number || 'Unknown Caller'}
             </h2>
-            {call.customer?.number && sd.customerName && (
+            {call.customer?.number && o.customerName && (
               <p style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
                 {call.customer.number}
               </p>
@@ -99,8 +99,8 @@ export default function CallDetail({ call, onClose }) {
           {/* Status row */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <EndReasonBadge reason={call.endedReason} />
-            {sd.appointmentBooked !== undefined && (
-              <AppointmentBadge value={sd.appointmentBooked} />
+            {o.appointmentBooked !== undefined && (
+              <AppointmentBadge value={o.appointmentBooked} />
             )}
             {duration !== null && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#64748b' }}>
@@ -112,18 +112,19 @@ export default function CallDetail({ call, onClose }) {
           {/* Customer Info */}
           {hasCustomerInfo && (
             <Section title="Customer Info">
-              <InfoRow label="Name" value={sd.customerName} />
-              <InfoRow label="Phone" value={sd.phoneNumber || call.customer?.number} />
-              <InfoRow label="Address" value={sd.address} icon={<Icons.MapPin />} />
+              <InfoRow label="Name" value={o.customerName} />
+              <InfoRow label="Phone" value={o.customerPhone || call.customer?.number} />
+              <InfoRow label="Address" value={o.customerAddress} icon={<Icons.MapPin />} />
             </Section>
           )}
 
           {/* Appointment Details */}
           {hasApptInfo && (
             <Section title="Appointment Details">
-              <InfoRow label="Appliance" value={sd.applianceType} />
-              <InfoRow label="Problem" value={sd.problem} />
-              <InfoRow label="Time Slot" value={sd.timeSlot} />
+              <InfoRow label="Service" value={o.serviceType} />
+              <InfoRow label="Problem" value={o.problem} />
+              <InfoRow label="Date" value={o.appointmentDate} />
+              <InfoRow label="Time" value={o.appointmentTime} />
             </Section>
           )}
 
@@ -151,10 +152,10 @@ export default function CallDetail({ call, onClose }) {
                   <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                     <span style={{
                       minWidth: 56, fontSize: 11, fontWeight: 600, paddingTop: 2,
-                      color: msg.role === 'assistant' ? '#818cf8' : '#34d399',
+                      color: msg.role === 'assistant' ? '#2BB5AD' : '#34d399',
                       textTransform: 'capitalize',
                     }}>
-                      {msg.role === 'assistant' ? 'Max' : 'Caller'}
+                      {msg.role === 'assistant' ? 'Dovvia' : 'Caller'}
                     </span>
                     <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>{msg.text}</p>
                   </div>
@@ -163,17 +164,17 @@ export default function CallDetail({ call, onClose }) {
             </Section>
           )}
 
-          {/* Raw structured data */}
-          {Object.keys(sd).length > 0 && (
+          {/* Raw structured outputs */}
+          {Object.keys(o).length > 0 && (
             <details>
               <summary style={{ fontSize: 12, color: '#475569', cursor: 'pointer', padding: '6px 0' }}>
-                Raw structured data
+                Raw structured outputs
               </summary>
               <pre style={{
                 fontSize: 11, color: '#64748b', background: '#0f1117',
                 padding: 12, borderRadius: 8, marginTop: 8, overflow: 'auto',
               }}>
-                {JSON.stringify(sd, null, 2)}
+                {JSON.stringify(o, null, 2)}
               </pre>
             </details>
           )}

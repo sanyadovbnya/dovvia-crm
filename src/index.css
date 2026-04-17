@@ -41,7 +41,7 @@ input, textarea, select {
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: #6366f1;
+  border-color: #E8952E;
 }
 
 button { cursor: pointer; font-family: inherit; transition: all 0.15s; }

@@ -1,6 +1,6 @@
-# Max CRM
+# Dovvia CRM
 
-Call dashboard for Max — the AI receptionist for Mike's Repair Shop.
+Call dashboard for Dovvia — the AI receptionist for Mike's Repair Shop.
 Connects directly to Vapi and shows all call data in real time.
 
 ## Quick Start

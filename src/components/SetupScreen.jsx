@@ -13,9 +13,9 @@ export default function SetupScreen({ onSave }) {
     setErr('')
     try {
       await testConnection(key.trim())
-      onSave(key.trim())
-    } catch {
-      setErr('Could not connect. Double-check your API key and try again.')
+      await onSave(key.trim())
+    } catch (e) {
+      setErr(e.message || 'Could not connect. Double-check your API key and try again.')
     } finally {
       setTesting(false)
     }
@@ -31,16 +31,16 @@ export default function SetupScreen({ onSave }) {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
             width: 56, height: 56,
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            background: 'linear-gradient(135deg, #E8952E, #D4811F)',
             borderRadius: 16,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px',
           }}>
             <Icons.Wrench />
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#f1f5f9' }}>Max CRM</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#f1f5f9' }}>Dovvia CRM</h1>
           <p style={{ color: '#64748b', marginTop: 6, fontSize: 14 }}>
-            Mike's Repair Shop · AI Receptionist Dashboard
+            Connect your Vapi API to get started
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export default function SetupScreen({ onSave }) {
           <p style={{ fontSize: 12, color: '#475569', marginBottom: 20 }}>
             Find it at{' '}
             <a href="https://dashboard.vapi.ai" target="_blank" rel="noreferrer"
-              style={{ color: '#6366f1' }}>
+              style={{ color: '#E8952E' }}>
               dashboard.vapi.ai
             </a>{' '}
             → Account → API Keys
@@ -81,7 +81,7 @@ export default function SetupScreen({ onSave }) {
             disabled={testing}
             style={{
               width: '100%', padding: '12px', borderRadius: 10, border: 'none',
-              background: testing ? '#3730a3' : 'linear-gradient(135deg, #6366f1, #7c3aed)',
+              background: testing ? '#B8741F' : 'linear-gradient(135deg, #E8952E, #D4811F)',
               color: '#fff', fontWeight: 600, fontSize: 15,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
