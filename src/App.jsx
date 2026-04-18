@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { fetchCalls, testConnection } from './api/vapi'
-import { fmtDuration, callDuration, isBooked, callOutputs, extractAppointment } from './utils/formatters'
+import { fmtDuration, callDuration, isBooked, callOutputs } from './utils/formatters'
 import { upsertAppointmentsFromCalls } from './utils/appointments'
 import { getSession, onAuthChange, logout } from './utils/auth'
 import { loadVapiKey, saveVapiKey } from './utils/profile'
@@ -13,6 +13,8 @@ import StatCard from './components/StatCard'
 import CallRow from './components/CallRow'
 import CallDetail from './components/CallDetail'
 import Calendar from './components/Calendar'
+import Stats from './components/Stats'
+import Shell from './components/Shell'
 import { Icons } from './components/Icons'
 
 function SettingsPanel({ currentKey, onSave, onClose }) {
@@ -35,33 +37,22 @@ function SettingsPanel({ currentKey, onSave, onClose }) {
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 59 }} />
-      <div className="fade-in" style={{
-        position: 'fixed', top: 62, right: 16,
-        background: '#13162b', border: '1px solid #1e2347',
-        borderRadius: 12, padding: 20, width: 340, zIndex: 60,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-      }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8', marginBottom: 10 }}>
-          Vapi API Key
-        </p>
+      <div onClick={onClose} className="fixed inset-0 z-40 bg-black/20" />
+      <div className="fade-in fixed z-50 top-20 right-4 sm:right-6 w-[min(92vw,380px)] card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-semibold text-ink-strong">Settings</p>
+          <button onClick={onClose} className="text-ink-muted hover:text-ink-strong"><Icons.X /></button>
+        </div>
+        <p className="text-xs font-semibold text-ink-muted mb-2 uppercase tracking-wide">Vapi API Key</p>
         <input
           type="password"
           placeholder="Enter new API key…"
           value={key}
           onChange={e => setKey(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSave()}
-          style={{ marginBottom: 10 }}
         />
-        {err && <p style={{ fontSize: 12, color: '#f87171', marginBottom: 8 }}>{err}</p>}
-        <button
-          onClick={handleSave}
-          disabled={testing}
-          style={{
-            width: '100%', padding: '9px', borderRadius: 8, border: 'none',
-            background: '#E8952E', color: '#fff', fontWeight: 600, fontSize: 13,
-          }}
-        >
+        {err && <p className="mt-2 text-xs text-pastel-coralDeep">{err}</p>}
+        <button onClick={handleSave} disabled={testing} className="btn-primary w-full mt-3">
           {testing ? 'Testing…' : 'Save & Reconnect'}
         </button>
       </div>
@@ -115,7 +106,7 @@ function Dashboard({ session, onLogout }) {
 
   if (keyLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
+      <div className="min-h-screen flex items-center justify-center text-ink-faint">
         <Icons.Spinner />
       </div>
     )
@@ -147,65 +138,15 @@ function Dashboard({ session, onLogout }) {
     : calls
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        background: '#13162b', borderBottom: '1px solid #1e2347',
-        padding: '0 24px', height: 58,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        position: 'sticky', top: 0, zIndex: 40,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 30, height: 30,
-            background: 'linear-gradient(135deg, #E8952E, #D4811F)',
-            borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icons.Wrench size={14} />
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#f1f5f9' }}>Dovvia CRM</span>
-          {company && (
-            <span style={{ fontSize: 12, color: '#475569' }}>{company}</span>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            onClick={loadCalls}
-            style={{
-              background: '#1e2347', border: 'none', borderRadius: 8,
-              padding: '7px 12px', color: '#94a3b8',
-              display: 'flex', alignItems: 'center', gap: 6, fontSize: 13,
-            }}
-          >
-            <span className={loading ? 'spinner' : ''} style={{ display: 'inline-flex' }}>
-              <Icons.Refresh />
-            </span>
-            {loading ? 'Loading…' : 'Refresh'}
-          </button>
-          <button
-            onClick={() => setShowSettings(s => !s)}
-            style={{
-              background: showSettings ? '#3d2a1a' : '#1e2347',
-              border: 'none', borderRadius: 8,
-              padding: '7px 12px', color: '#94a3b8',
-              display: 'flex', alignItems: 'center', gap: 6, fontSize: 13,
-            }}
-          >
-            <Icons.Settings /> Settings
-          </button>
-          <button
-            onClick={onLogout}
-            style={{
-              background: '#1e2347', border: 'none', borderRadius: 8,
-              padding: '7px 12px', color: '#94a3b8',
-              display: 'flex', alignItems: 'center', gap: 6, fontSize: 13,
-            }}
-          >
-            <Icons.User /> Sign Out
-          </button>
-        </div>
-      </div>
-
+    <Shell
+      company={company}
+      tab={tab}
+      setTab={setTab}
+      onRefresh={loadCalls}
+      loading={loading}
+      onOpenSettings={() => setShowSettings(true)}
+      onLogout={onLogout}
+    >
       {showSettings && (
         <SettingsPanel
           currentKey={apiKey}
@@ -214,127 +155,90 @@ function Dashboard({ session, onLogout }) {
         />
       )}
 
-      <div style={{
-        flex: 1, maxWidth: 1200, width: '100%',
-        margin: '0 auto', padding: '24px',
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 14, marginBottom: 24,
-        }}>
-          <StatCard label="Total Calls" value={calls.length} sub="all time" color="#6366f1" icon={<Icons.Phone />} />
-          <StatCard label="Today" value={todayCalls.length} sub="calls today" color="#8b5cf6" icon={<Icons.Microphone />} />
-          <StatCard label="Appointments" value={bookedCalls.length} sub="booked total" color="#10b981" icon={<Icons.Calendar />} />
-          <StatCard label="Avg Duration" value={fmtDuration(avgDuration)} sub="per call" color="#f59e0b" icon={<Icons.Clock />} />
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard label="Total Calls"   value={calls.length}        sub="all time"    tone="lavender" icon={<Icons.Phone />} />
+        <StatCard label="Today"         value={todayCalls.length}   sub="calls today" tone="sky"      icon={<Icons.Microphone />} />
+        <StatCard label="Appointments"  value={bookedCalls.length}  sub="booked total" tone="mint"    icon={<Icons.Calendar />} />
+        <StatCard label="Avg Duration"  value={fmtDuration(avgDuration)} sub="per call" tone="peach"  icon={<Icons.Clock />} />
+      </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#13162b', borderRadius: 10, padding: 4 }}>
-          {[
-            { key: 'calls', label: 'Calls', icon: <Icons.Phone /> },
-            { key: 'schedule', label: 'Schedule', icon: <Icons.Calendar /> },
-          ].map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              style={{
-                flex: 1, padding: '10px', borderRadius: 8, border: 'none',
-                background: tab === t.key ? '#1e2347' : 'transparent',
-                color: tab === t.key ? '#f1f5f9' : '#475569',
-                fontWeight: 600, fontSize: 13,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                transition: 'all 0.15s',
-              }}
-            >
-              {t.icon} {t.label}
-            </button>
-          ))}
-        </div>
+      {tab === 'calls' && (
+        <section className="mt-6">
+          {/* Search */}
+          <div className="relative mb-4">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint dark:text-slate-500"><Icons.Search /></span>
+            <input
+              placeholder="Search by name, phone, service, problem…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-11"
+            />
+          </div>
 
-        {tab === 'calls' ? (
-          <>
-            <div style={{ position: 'relative', marginBottom: 16 }}>
-              <span style={{
-                position: 'absolute', left: 12, top: '50%',
-                transform: 'translateY(-50%)', color: '#475569',
-              }}>
-                <Icons.Search />
-              </span>
-              <input
-                placeholder="Search by name, phone, appliance, problem…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: 36 }}
-              />
+          {error && (
+            <div className="mb-4 rounded-xl2 bg-pastel-coral text-pastel-coralDeep dark:bg-red-500/15 dark:text-red-300 px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Call list */}
+          <div className="card overflow-hidden">
+            <div className="hidden sm:grid grid-cols-[1fr_128px_112px_56px_20px] items-center gap-3 px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-surface-muted/40 dark:bg-slate-800/40">
+              {['Caller', 'Date & Time', 'Status', 'Duration', ''].map((h, i) => (
+                <span key={i} className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400">{h}</span>
+              ))}
             </div>
 
-            {error && (
-              <div style={{
-                background: '#2d0a0a', border: '1px solid #7f1d1d',
-                borderRadius: 10, padding: '12px 16px',
-                color: '#f87171', fontSize: 13, marginBottom: 16,
-              }}>
-                {error}
+            {loading && calls.length === 0 ? (
+              <div className="py-16 text-center text-ink-muted dark:text-slate-400">
+                <span className="spinner inline-block mb-3"><Icons.Spinner /></span>
+                <p>Loading calls…</p>
               </div>
-            )}
-
-            <div style={{
-              background: '#13162b', border: '1px solid #1e2347',
-              borderRadius: 14, overflow: 'hidden',
-            }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 140px 110px 70px 24px',
-                gap: 12, padding: '10px 20px',
-                borderBottom: '1px solid #1e2347',
-              }}>
-                {['Caller', 'Date & Time', 'Status', 'Duration', ''].map((h, i) => (
-                  <span key={i} style={{
-                    fontSize: 11, fontWeight: 600, color: '#475569',
-                    textTransform: 'uppercase', letterSpacing: '0.06em',
-                  }}>
-                    {h}
-                  </span>
-                ))}
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center">
+                <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-pastel-lavender dark:bg-indigo-500/20 flex items-center justify-center text-pastel-lavDeep dark:text-indigo-300">
+                  <Icons.Phone />
+                </div>
+                <p className="text-ink-strong dark:text-slate-100 font-medium">
+                  {search ? 'No calls match your search.' : 'No calls yet.'}
+                </p>
+                {!search && (
+                  <p className="text-sm text-ink-muted dark:text-slate-400 mt-1">When a customer calls Max, they&apos;ll show up here.</p>
+                )}
               </div>
-
-              {loading && calls.length === 0 ? (
-                <div style={{ padding: 48, textAlign: 'center', color: '#475569' }}>
-                  <span className="spinner" style={{ display: 'inline-block', marginBottom: 12 }}>
-                    <Icons.Spinner />
-                  </span>
-                  <p>Loading calls…</p>
-                </div>
-              ) : filtered.length === 0 ? (
-                <div style={{ padding: 48, textAlign: 'center', color: '#475569' }}>
-                  {search ? 'No calls match your search.' : 'No calls yet. Make a test call to Dovvia!'}
-                </div>
-              ) : (
-                filtered.map(call => (
+            ) : (
+              <div>
+                {filtered.map(call => (
                   <CallRow
                     key={call.id}
                     call={call}
                     active={selected?.id === call.id}
                     onClick={() => setSelected(selected?.id === call.id ? null : call)}
                   />
-                ))
-              )}
-            </div>
-          </>
-        ) : (
-          <Calendar />
-        )}
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
-        <p style={{ fontSize: 11, color: '#2d3148', textAlign: 'center', marginTop: 16 }}>
-          Powered by Vapi · Dovvia AI Receptionist
-        </p>
-      </div>
+      {tab === 'schedule' && (
+        <section className="mt-6">
+          <Calendar />
+        </section>
+      )}
+
+      {tab === 'stats' && (
+        <section className="mt-6">
+          <Stats calls={calls} loading={loading} />
+        </section>
+      )}
 
       {selected && (
         <CallDetail call={selected} onClose={() => setSelected(null)} />
       )}
-    </div>
+    </Shell>
   )
 }
 
@@ -348,9 +252,7 @@ export default function App() {
       setSession(s)
       setLoading(false)
     })
-    const subscription = onAuthChange(s => {
-      setSession(s)
-    })
+    const subscription = onAuthChange(s => { setSession(s) })
     return () => subscription.unsubscribe()
   }, [])
 
@@ -362,10 +264,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#475569',
-      }}>
+      <div className="min-h-screen flex items-center justify-center text-ink-faint">
         <Icons.Spinner />
       </div>
     )
@@ -373,19 +272,11 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/crm/login" element={
-        session ? <Navigate to="/crm/dashboard" replace /> : <LoginScreen />
-      } />
-      <Route path="/crm/register" element={
-        session ? <Navigate to="/crm/dashboard" replace /> : <RegisterScreen />
-      } />
+      <Route path="/crm/login" element={session ? <Navigate to="/crm/dashboard" replace /> : <LoginScreen />} />
+      <Route path="/crm/register" element={session ? <Navigate to="/crm/dashboard" replace /> : <RegisterScreen />} />
       <Route path="/crm/forgot-password" element={<ForgotPasswordScreen />} />
-      <Route path="/crm/dashboard" element={
-        session ? <Dashboard session={session} onLogout={handleLogout} /> : <Navigate to="/crm/login" replace />
-      } />
-      <Route path="*" element={
-        <Navigate to={session ? '/crm/dashboard' : '/crm/login'} replace />
-      } />
+      <Route path="/crm/dashboard" element={session ? <Dashboard session={session} onLogout={handleLogout} /> : <Navigate to="/crm/login" replace />} />
+      <Route path="*" element={<Navigate to={session ? '/crm/dashboard' : '/crm/login'} replace />} />
     </Routes>
   )
 }

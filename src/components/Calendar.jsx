@@ -3,7 +3,24 @@ import { fetchAppointments, createAppointment, cancelAppointment, rescheduleAppo
 import { AppointmentForm, AppointmentDetail, Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 7)
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 7) // 7a - 6p
+
+const SERVICE_TONE = {
+  'Appliance Repair':       'bg-pastel-peach    text-pastel-peachDeep border-orange-200',
+  'HVAC':                   'bg-pastel-mint     text-pastel-mintDeep  border-emerald-200',
+  'Plumbing':               'bg-pastel-sky      text-pastel-skyDeep   border-blue-200',
+  'Electrical':             'bg-amber-100       text-amber-800        border-amber-200',
+  'Cleaning':               'bg-pastel-lavender text-pastel-lavDeep   border-indigo-200',
+  'Landscaping':            'bg-green-100       text-green-800        border-green-200',
+  'Pest Control':           'bg-pastel-coral    text-pastel-coralDeep border-red-200',
+  'Locksmith':              'bg-orange-100      text-orange-800       border-orange-200',
+  'General Home Services':  'bg-slate-100       text-slate-700        border-slate-200',
+  'Other':                  'bg-slate-100       text-slate-700        border-slate-200',
+}
+
+function toneFor(type) {
+  return SERVICE_TONE[type] || SERVICE_TONE.Other
+}
 
 function getWeekDays(date) {
   const d = new Date(date)
@@ -31,20 +48,6 @@ function fmtTime(t) {
 function timeToRow(t) {
   const [h, m] = t.split(':').map(Number)
   return (h - 7) * 4 + Math.floor(m / 15)
-}
-
-function apptColor(type) {
-  const colors = {
-    'Appliance Repair': '#E8952E',
-    'HVAC': '#2BB5AD',
-    'Plumbing': '#60a5fa',
-    'Electrical': '#fbbf24',
-    'Cleaning': '#a78bfa',
-    'Landscaping': '#4ade80',
-    'Pest Control': '#f87171',
-    'Locksmith': '#fb923c',
-  }
-  return colors[type] || '#94a3b8'
 }
 
 export default function Calendar() {
@@ -77,205 +80,179 @@ export default function Calendar() {
 
   useEffect(() => { load() }, [load])
 
-  function prevWeek() {
-    setWeekOf(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n })
-  }
-  function nextWeek() {
-    setWeekOf(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n })
-  }
-  function goToday() {
-    const now = new Date(); now.setHours(0, 0, 0, 0); setWeekOf(now)
-  }
+  function prevWeek() { setWeekOf(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n }) }
+  function nextWeek() { setWeekOf(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n }) }
+  function goToday()  { const n = new Date(); n.setHours(0,0,0,0); setWeekOf(n) }
 
   async function handleCreate(form) {
     setSaving(true)
-    try {
-      await createAppointment(form)
-      setModal(null)
-      await load()
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setSaving(false)
-    }
+    try { await createAppointment(form); setModal(null); await load() }
+    catch (e) { setError(e.message) } finally { setSaving(false) }
   }
-
   async function handleCancel(id) {
     setSaving(true)
-    try {
-      await cancelAppointment(id)
-      setModal(null)
-      await load()
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setSaving(false)
-    }
+    try { await cancelAppointment(id); setModal(null); await load() }
+    catch (e) { setError(e.message) } finally { setSaving(false) }
   }
-
-  async function handleReschedule(id, date, timeStart, timeEnd) {
+  async function handleReschedule(id, date, ts, te) {
     setSaving(true)
-    try {
-      await rescheduleAppointment(id, date, timeStart, timeEnd)
-      setModal(null)
-      await load()
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setSaving(false)
-    }
+    try { await rescheduleAppointment(id, date, ts, te); setModal(null); await load() }
+    catch (e) { setError(e.message) } finally { setSaving(false) }
   }
 
   const today = toDateStr(new Date())
 
   return (
     <div>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 16, flexWrap: 'wrap', gap: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button onClick={prevWeek} style={navBtn}>&lsaquo;</button>
-          <button onClick={goToday} style={{ ...navBtn, padding: '6px 14px', fontSize: 13 }}>Today</button>
-          <button onClick={nextWeek} style={navBtn}>&rsaquo;</button>
-          <span style={{ fontSize: 15, fontWeight: 600, color: '#f1f5f9', marginLeft: 8 }}>
+      {/* Header row */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <button onClick={prevWeek} className="h-9 w-9 rounded-xl bg-white hover:bg-surface-muted border border-slate-100 flex items-center justify-center text-ink-base dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300" title="Previous week">
+            <span className="rotate-180 inline-block"><Icons.ChevronRight /></span>
+          </button>
+          <button onClick={goToday} className="btn-ghost">Today</button>
+          <button onClick={nextWeek} className="h-9 w-9 rounded-xl bg-white hover:bg-surface-muted border border-slate-100 flex items-center justify-center text-ink-base dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300" title="Next week">
+            <Icons.ChevronRight />
+          </button>
+          <h2 className="ml-2 text-lg font-bold text-ink-strong dark:text-slate-100">
             {days[0].toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </span>
+          </h2>
         </div>
-        <button onClick={() => setModal({ type: 'new', date: today })} style={{
-          padding: '8px 16px', borderRadius: 8, border: 'none',
-          background: 'linear-gradient(135deg, #E8952E, #D4811F)',
-          color: '#fff', fontWeight: 600, fontSize: 13,
-          display: 'flex', alignItems: 'center', gap: 6,
-        }}>
+        <button onClick={() => setModal({ type: 'new', date: today })} className="btn-primary">
           + New Appointment
         </button>
       </div>
 
       {error && (
-        <div style={{
-          background: '#2d0a0a', border: '1px solid #7f1d1d',
-          borderRadius: 10, padding: '10px 14px',
-          color: '#f87171', fontSize: 13, marginBottom: 12,
-        }}>
-          {error}
-          <button onClick={() => setError('')} style={{
-            float: 'right', background: 'none', border: 'none', color: '#f87171', fontSize: 16,
-          }}>×</button>
+        <div className="mb-4 rounded-xl2 bg-pastel-coral text-pastel-coralDeep dark:bg-red-500/15 dark:text-red-300 px-4 py-3 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError('')} className="font-bold"><Icons.X /></button>
         </div>
       )}
 
-      <div style={{
-        background: '#13162b', border: '1px solid #1e2347',
-        borderRadius: 14, overflow: 'hidden',
-      }}>
-        {/* Day headers */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '60px repeat(7, 1fr)',
-          borderBottom: '1px solid #1e2347',
-        }}>
-          <div style={{ padding: '10px 0' }} />
+      {/* ============ MOBILE: agenda list ============ */}
+      <div className="lg:hidden space-y-4">
+        {days.map(d => {
+          const dateStr = toDateStr(d)
+          const dayAppts = appointments
+            .filter(a => a.date === dateStr)
+            .sort((a, b) => a.time_start.localeCompare(b.time_start))
+          const isToday = dateStr === today
+
+          return (
+            <div key={dateStr} className={`card p-4 ${isToday ? 'ring-2 ring-brand-300 dark:ring-brand-500/50' : ''}`}>
+              <div className="flex items-baseline justify-between mb-3">
+                <div>
+                  <p className={`text-[11px] font-semibold uppercase tracking-wider ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-ink-muted dark:text-slate-400'}`}>
+                    {d.toLocaleDateString('en-US', { weekday: 'long' })} {isToday && '· Today'}
+                  </p>
+                  <p className="text-xl font-bold text-ink-strong dark:text-slate-100 mt-0.5">
+                    {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setModal({ type: 'new', date: dateStr })}
+                  className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                >
+                  + Add
+                </button>
+              </div>
+
+              {dayAppts.length === 0 ? (
+                <p className="text-sm text-ink-faint dark:text-slate-500 py-3">No appointments.</p>
+              ) : (
+                <div className="space-y-2">
+                  {dayAppts.map(a => (
+                    <button
+                      key={a.id}
+                      onClick={() => setModal({ type: 'detail', appt: a })}
+                      className={`w-full text-left rounded-xl border px-3 py-2.5 transition hover:shadow-card ${toneFor(a.service_type)}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm truncate">{a.customer_name}</p>
+                        <p className="text-xs font-medium tabular-nums">{fmtTime(a.time_start)}</p>
+                      </div>
+                      <p className="text-xs opacity-80 truncate">{a.service_type}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ============ DESKTOP: week grid ============ */}
+      <div className="hidden lg:block card overflow-hidden">
+        {/* Day header row */}
+        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-slate-100 dark:border-slate-800">
+          <div />
           {days.map(d => {
             const isToday = toDateStr(d) === today
             return (
-              <div key={d.toISOString()} style={{
-                padding: '10px 8px', textAlign: 'center',
-                borderLeft: '1px solid #1e2347',
-                background: isToday ? 'rgba(232, 149, 46, 0.08)' : 'transparent',
-              }}>
-                <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div
+                key={d.toISOString()}
+                className={`py-3 text-center border-l border-slate-100 dark:border-slate-800 ${isToday ? 'bg-brand-50 dark:bg-brand-500/10' : ''}`}
+              >
+                <p className={`text-[11px] font-semibold uppercase tracking-wider ${isToday ? 'text-brand-600 dark:text-brand-400' : 'text-ink-muted dark:text-slate-400'}`}>
                   {d.toLocaleDateString('en-US', { weekday: 'short' })}
-                </div>
-                <div style={{
-                  fontSize: 18, fontWeight: 700, marginTop: 2,
-                  color: isToday ? '#E8952E' : '#94a3b8',
-                }}>
+                </p>
+                <p className={`text-lg font-bold mt-0.5 ${isToday ? 'text-brand-700 dark:text-brand-300' : 'text-ink-strong dark:text-slate-100'}`}>
                   {d.getDate()}
-                </div>
+                </p>
               </div>
             )
           })}
         </div>
 
         {/* Time grid */}
-        <div style={{ maxHeight: 520, overflowY: 'auto' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '60px repeat(7, 1fr)',
-            position: 'relative',
-          }}>
-            {/* Time labels */}
+        <div className="max-h-[620px] overflow-y-auto">
+          <div className="grid grid-cols-[56px_repeat(7,1fr)] relative">
+            {/* Time labels column */}
             <div>
               {HOURS.map(h => (
-                <div key={h} style={{
-                  height: 60, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end',
-                  paddingRight: 8, paddingTop: 2,
-                  fontSize: 11, color: '#475569',
-                  borderBottom: '1px solid #1a1d2e',
-                }}>
+                <div key={h} className="h-16 flex items-start justify-end pr-2 pt-1 text-[11px] text-ink-faint dark:text-slate-500 border-b border-slate-50 dark:border-slate-800/70">
                   {h % 12 || 12}{h < 12 ? 'a' : 'p'}
                 </div>
               ))}
             </div>
 
             {/* Day columns */}
-            {days.map((d, di) => {
+            {days.map(d => {
               const dateStr = toDateStr(d)
               const dayAppts = appointments.filter(a => a.date === dateStr)
               const isToday = dateStr === today
 
               return (
-                <div key={dateStr} style={{
-                  position: 'relative',
-                  borderLeft: '1px solid #1e2347',
-                  background: isToday ? 'rgba(232, 149, 46, 0.04)' : 'transparent',
-                  cursor: 'pointer',
-                }} onClick={() => setModal({ type: 'new', date: dateStr })}>
+                <div
+                  key={dateStr}
+                  onClick={() => setModal({ type: 'new', date: dateStr })}
+                  className={`relative border-l border-slate-100 dark:border-slate-800 cursor-pointer ${isToday ? 'bg-brand-50/40 dark:bg-brand-500/5' : ''}`}
+                >
                   {HOURS.map(h => (
-                    <div key={h} style={{
-                      height: 60,
-                      borderBottom: '1px solid #1a1d2e',
-                    }} />
+                    <div key={h} className="h-16 border-b border-slate-50 dark:border-slate-800/70" />
                   ))}
 
                   {dayAppts.map(appt => {
                     const startRow = timeToRow(appt.time_start)
-                    const endRow = timeToRow(appt.time_end)
-                    const top = startRow * 15
-                    const height = Math.max((endRow - startRow) * 15, 24)
-                    const color = apptColor(appt.service_type)
-
+                    const endRow   = timeToRow(appt.time_end)
+                    const top      = startRow * 16
+                    const height   = Math.max((endRow - startRow) * 16, 28)
                     return (
-                      <div
+                      <button
                         key={appt.id}
                         onClick={e => { e.stopPropagation(); setModal({ type: 'detail', appt }) }}
-                        style={{
-                          position: 'absolute', left: 2, right: 2, top, height,
-                          background: color + '22',
-                          border: `1px solid ${color}55`,
-                          borderLeft: `3px solid ${color}`,
-                          borderRadius: 6, padding: '3px 6px',
-                          overflow: 'hidden', cursor: 'pointer',
-                          transition: 'opacity 0.15s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-                        onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                        style={{ top, height }}
+                        className={`absolute left-1 right-1 rounded-lg border px-2 py-1 text-left overflow-hidden transition hover:shadow-card ${toneFor(appt.service_type)}`}
                       >
-                        <div style={{ fontSize: 11, fontWeight: 600, color, lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {appt.customer_name}
-                        </div>
-                        {height > 30 && (
-                          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>
-                            {fmtTime(appt.time_start)}
-                          </div>
+                        <p className="text-[11px] font-semibold leading-tight truncate">{appt.customer_name}</p>
+                        {height > 32 && (
+                          <p className="text-[10px] mt-0.5 opacity-80">{fmtTime(appt.time_start)}</p>
                         )}
-                        {height > 48 && (
-                          <div style={{ fontSize: 10, color: '#64748b', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {appt.service_type}
-                          </div>
+                        {height > 52 && (
+                          <p className="text-[10px] mt-0.5 opacity-70 truncate">{appt.service_type}</p>
                         )}
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -286,8 +263,8 @@ export default function Calendar() {
       </div>
 
       {loading && appointments.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 32, color: '#475569' }}>
-          <span className="spinner" style={{ display: 'inline-block', marginBottom: 8 }}><Icons.Spinner /></span>
+        <div className="text-center py-10 text-ink-faint dark:text-slate-500">
+          <span className="spinner inline-block mb-2"><Icons.Spinner /></span>
           <p>Loading appointments…</p>
         </div>
       )}
@@ -317,9 +294,4 @@ export default function Calendar() {
       )}
     </div>
   )
-}
-
-const navBtn = {
-  background: '#1e2347', border: 'none', borderRadius: 8,
-  padding: '6px 10px', color: '#94a3b8', fontSize: 18, fontWeight: 600,
 }
