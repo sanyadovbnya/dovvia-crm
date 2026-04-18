@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
 
   const { data: appts, error } = await supabase
     .from('appointments')
-    .select('id, customer_name, customer_phone, date, time_start, status')
+    .select('id, customer_name, customer_phone, caller_phone, date, time_start, status')
     .eq('user_id', profile.id)
     .eq('date', date)
     .neq('status', 'cancelled')
@@ -134,9 +134,9 @@ Deno.serve(async (req) => {
   }
 
   const matches = (appts ?? []).filter(a => {
-    const aPhone = phoneDigits(a.customer_phone)
+    const phones = [phoneDigits(a.customer_phone), phoneDigits(a.caller_phone)]
     const aFirst = firstName(a.customer_name)
-    return aPhone === phone && aFirst === name
+    return phones.includes(phone) && aFirst === name
   })
 
   if (matches.length === 0) {

@@ -14,6 +14,7 @@ import CallRow from './components/CallRow'
 import CallDetail from './components/CallDetail'
 import Calendar from './components/Calendar'
 import Stats from './components/Stats'
+import Customers from './components/Customers'
 import Shell from './components/Shell'
 import { Icons } from './components/Icons'
 
@@ -226,6 +227,12 @@ function Dashboard({ session, onLogout }) {
       {tab === 'schedule' && (
         <section className="mt-6">
           <Calendar />
+        </section>
+      )}
+
+      {tab === 'customers' && (
+        <section className="mt-6">
+          <Customers />
         </section>
       )}
 

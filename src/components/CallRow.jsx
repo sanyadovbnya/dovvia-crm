@@ -2,10 +2,15 @@ import { fmtDate, fmtDuration, callDuration, isBooked, getCallerName, callOutput
 import { EndReasonBadge } from './Badges'
 import { Icons } from './Icons'
 
+function digits(s) { return (s || '').replace(/\D/g, '').slice(-10) }
+
 export default function CallRow({ call, active, onClick }) {
   const name = getCallerName(call)
   const o = callOutputs(call)
-  const phone = o.customerPhone || call.customer?.number
+  const spoken = o.customerPhone
+  const callerId = call.customer?.number
+  const phoneShown = spoken || callerId
+  const differ = spoken && callerId && digits(spoken) !== digits(callerId)
   const duration = callDuration(call)
   const booked = isBooked(call)
 
@@ -26,7 +31,10 @@ export default function CallRow({ call, active, onClick }) {
             {booked && <span className="badge badge-green">Booked</span>}
           </div>
           <p className="text-xs text-ink-muted dark:text-slate-400 mt-0.5 truncate">
-            {phone && phone !== name ? phone : fmtDate(call.createdAt)}
+            {phoneShown && phoneShown !== name ? phoneShown : fmtDate(call.createdAt)}
+            {differ && (
+              <span className="ml-1.5 text-ink-faint dark:text-slate-500">· from {callerId}</span>
+            )}
           </p>
 
           <div className="mt-2 flex items-center gap-2 sm:hidden">

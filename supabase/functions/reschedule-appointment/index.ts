@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
   // Find the original appointment
   const { data: oldAppts, error: findErr } = await supabase
     .from('appointments')
-    .select('id, customer_name, customer_phone, date, time_start')
+    .select('id, customer_name, customer_phone, caller_phone, date, time_start')
     .eq('user_id', profile.id)
     .eq('date', oldDate)
     .neq('status', 'cancelled')
@@ -189,7 +189,8 @@ Deno.serve(async (req) => {
   }
 
   const matches = (oldAppts ?? []).filter(a => {
-    return phoneDigits(a.customer_phone) === phone && firstName(a.customer_name) === name
+    const phones = [phoneDigits(a.customer_phone), phoneDigits(a.caller_phone)]
+    return phones.includes(phone) && firstName(a.customer_name) === name
   })
 
   if (matches.length === 0) {

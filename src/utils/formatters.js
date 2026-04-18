@@ -94,6 +94,7 @@ export function extractAppointment(call) {
     call_id: call.id,
     customer_name: customerName,
     customer_phone: o.customerPhone || call.customer?.number || null,
+    caller_phone: call.customer?.number || null,
     customer_address: o.customerAddress || null,
     service_type: o.serviceType || 'General Home Services',
     problem: o.problem || null,

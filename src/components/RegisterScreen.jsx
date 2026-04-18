@@ -3,29 +3,37 @@ import { Link, useNavigate } from 'react-router-dom'
 import { register } from '../utils/auth'
 import { AuthIcons } from './AuthIcons'
 import AuthLayout from './AuthLayout'
+import { Field, InputWithIcon } from './LoginScreen'
 
 const BUSINESS_TYPES = [
   { value: 'appliance_repair', label: 'Appliance Repair' },
-  { value: 'hvac', label: 'HVAC' },
-  { value: 'plumbing', label: 'Plumbing' },
-  { value: 'electrical', label: 'Electrical' },
-  { value: 'cleaning', label: 'Cleaning Services' },
-  { value: 'landscaping', label: 'Landscaping' },
-  { value: 'pest_control', label: 'Pest Control' },
-  { value: 'locksmith', label: 'Locksmith' },
-  { value: 'home_services', label: 'General Home Services' },
-  { value: 'custom', label: 'Custom / Other' },
+  { value: 'hvac',             label: 'HVAC' },
+  { value: 'plumbing',         label: 'Plumbing' },
+  { value: 'electrical',       label: 'Electrical' },
+  { value: 'cleaning',         label: 'Cleaning Services' },
+  { value: 'landscaping',      label: 'Landscaping' },
+  { value: 'pest_control',     label: 'Pest Control' },
+  { value: 'locksmith',        label: 'Locksmith' },
+  { value: 'home_services',    label: 'General Home Services' },
+  { value: 'custom',           label: 'Custom / Other' },
 ]
 
 function PasswordCheck({ label, met }) {
   return (
-    <span style={{
-      display: 'flex', alignItems: 'center', gap: 6,
-      fontSize: 12, color: met ? '#4ade80' : '#475569',
-    }}>
-      {met ? <AuthIcons.Check /> : <span style={{ width: 12, height: 12, display: 'inline-block' }} />}
+    <span className={`flex items-center gap-1.5 text-xs ${met ? 'text-emerald-600 dark:text-emerald-400' : 'text-ink-faint dark:text-slate-500'}`}>
+      <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-full ${met ? 'bg-emerald-100 dark:bg-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+        {met && <AuthIcons.Check />}
+      </span>
       {label}
     </span>
+  )
+}
+
+function SectionLabel({ children }) {
+  return (
+    <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-3">
+      {children}
+    </p>
   )
 }
 
@@ -40,15 +48,13 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  function set(field) {
-    return e => setForm(f => ({ ...f, [field]: e.target.value }))
-  }
+  const set = field => e => setForm(f => ({ ...f, [field]: e.target.value }))
 
   const pw = form.password
   const pwChecks = {
     length: pw.length >= 8,
-    upper: /[A-Z]/.test(pw),
-    lower: /[a-z]/.test(pw),
+    upper:  /[A-Z]/.test(pw),
+    lower:  /[a-z]/.test(pw),
     number: /[0-9]/.test(pw),
   }
 
@@ -60,14 +66,9 @@ export default function RegisterScreen() {
     if (!pwChecks.length || !pwChecks.upper || !pwChecks.lower || !pwChecks.number) {
       setErr('Password does not meet the requirements.'); return
     }
-    if (form.password !== form.confirmPassword) {
-      setErr('Passwords do not match.'); return
-    }
-    if (!agreed) {
-      setErr('You must agree to the Terms of Service.'); return
-    }
-    setLoading(true)
-    setErr('')
+    if (form.password !== form.confirmPassword) { setErr('Passwords do not match.'); return }
+    if (!agreed) { setErr('You must agree to the Terms of Service.'); return }
+    setLoading(true); setErr('')
     try {
       await register(form)
       navigate('/crm/dashboard')
@@ -80,153 +81,139 @@ export default function RegisterScreen() {
 
   return (
     <AuthLayout
-      title="Start Your Free Trial"
-      subtitle="7 days free, no credit card required"
+      title="Start your free trial"
+      subtitle="7 days free · no credit card required"
       footer={
         <>
-          <p style={{ fontSize: 14, color: '#64748b' }}>
+          <p>
             Already have an account?{' '}
-            <Link to="/crm/login" style={{ color: '#2BB5AD', textDecoration: 'none', fontWeight: 500 }}>
+            <Link to="/crm/login" className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold">
               Sign in
             </Link>
           </p>
-          <div style={{
-            display: 'flex', justifyContent: 'center', gap: 24, marginTop: 12,
-          }}>
-            {['No credit card', 'Cancel anytime', 'Full access'].map(t => (
-              <span key={t} style={{ fontSize: 12, color: '#475569' }}>{t}</span>
-            ))}
+          <div className="flex justify-center gap-4 mt-2 text-xs text-ink-faint dark:text-slate-500">
+            <span>No credit card</span>
+            <span>·</span>
+            <span>Cancel anytime</span>
+            <span>·</span>
+            <span>Full access</span>
           </div>
         </>
       }
     >
-      <div style={{
-        background: '#0f1117', border: '1px solid #1e3a2f',
-        borderRadius: 10, padding: '12px 16px',
-        display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24,
-      }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 8,
-          background: '#052e16', border: '1px solid #166534',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#4ade80',
-        }}>
+      {/* Trial banner */}
+      <div className="mb-5 rounded-xl bg-pastel-mint dark:bg-emerald-500/15 border border-emerald-200/60 dark:border-emerald-500/20 px-4 py-3 flex items-center gap-3">
+        <div className="h-9 w-9 rounded-xl bg-emerald-200 dark:bg-emerald-500/30 flex items-center justify-center text-pastel-mintDeep dark:text-emerald-300">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
         <div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0' }}>7-Day Free Trial</p>
-          <p style={{ fontSize: 12, color: '#4ade80' }}>Full access to all features · No credit card required</p>
+          <p className="text-sm font-semibold text-ink-strong dark:text-slate-100">7-day free trial</p>
+          <p className="text-xs text-pastel-mintDeep dark:text-emerald-300">Full access · No credit card required</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <p style={sectionLabel}>Personal Info</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div>
-            <label style={labelStyle}>Full Name *</label>
-            <input placeholder="John Doe" value={form.name} onChange={set('name')} style={{ height: 46 }} />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <SectionLabel>Personal Info</SectionLabel>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Full name *">
+              <input placeholder="John Doe" value={form.name} onChange={set('name')} />
+            </Field>
+            <Field label="Phone">
+              <input type="tel" placeholder="(555) 123-4567" value={form.phone} onChange={set('phone')} />
+            </Field>
           </div>
-          <div>
-            <label style={labelStyle}>Phone</label>
-            <input type="tel" placeholder="(555) 123-4567" value={form.phone} onChange={set('phone')} style={{ height: 46 }} />
+        </div>
+
+        <div>
+          <SectionLabel>Business Details</SectionLabel>
+          <Field label="Company name *">
+            <input placeholder="Your business name" value={form.company} onChange={set('company')} />
+          </Field>
+          <div className="mt-3">
+            <Field label="Business type *">
+              <select value={form.businessType} onChange={set('businessType')}>
+                {BUSINESS_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </Field>
+            <p className="mt-1.5 text-xs text-ink-faint dark:text-slate-500">
+              Pre-configures booking fields · Pick "Custom" to set up manually
+            </p>
           </div>
         </div>
 
-        <p style={{ ...sectionLabel, marginTop: 24 }}>Business Details</p>
-        <label style={labelStyle}>Company Name *</label>
-        <input placeholder="Your Business Name" value={form.company} onChange={set('company')} style={{ height: 46, marginBottom: 12 }} />
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-5">
+          <SectionLabel>Account</SectionLabel>
+          <Field label="Email *">
+            <input type="email" placeholder="you@company.com" value={form.email} onChange={set('email')} autoComplete="email" />
+          </Field>
 
-        <label style={labelStyle}>Business Type *</label>
-        <select value={form.businessType} onChange={set('businessType')} style={{ height: 46, marginBottom: 4 }}>
-          {BUSINESS_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-        <p style={{ fontSize: 12, color: '#475569', marginBottom: 0 }}>
-          Pre-configures booking fields · Choose "Custom" to set up manually
-        </p>
+          <div className="mt-3">
+            <Field label="Password *">
+              <InputWithIcon icon={<AuthIcons.Lock />}>
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={set('password')}
+                  className="pl-11 pr-11"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint dark:text-slate-500 hover:text-ink-base"
+                >
+                  {showPw ? <AuthIcons.EyeOff /> : <AuthIcons.Eye />}
+                </button>
+              </InputWithIcon>
+            </Field>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
+              <PasswordCheck label="8+ characters"    met={pwChecks.length} />
+              <PasswordCheck label="Uppercase letter" met={pwChecks.upper} />
+              <PasswordCheck label="Lowercase letter" met={pwChecks.lower} />
+              <PasswordCheck label="Number"           met={pwChecks.number} />
+            </div>
+          </div>
 
-        <div style={{ borderTop: '1px solid #1e2347', margin: '24px 0' }} />
-
-        <p style={sectionLabel}>Account</p>
-        <label style={labelStyle}>Email Address *</label>
-        <input type="email" placeholder="you@company.com" value={form.email} onChange={set('email')} style={{ height: 46, marginBottom: 12 }} />
-
-        <label style={labelStyle}>Password *</label>
-        <div style={{ position: 'relative' }}>
-          <input
-            type={showPw ? 'text' : 'password'}
-            placeholder="••••••••"
-            value={form.password}
-            onChange={set('password')}
-            style={{ height: 46, paddingRight: 44 }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPw(s => !s)}
-            style={{
-              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-              background: 'none', border: 'none', color: '#475569', display: 'flex', padding: 4,
-            }}
-          >
-            {showPw ? <AuthIcons.EyeOff /> : <AuthIcons.Eye />}
-          </button>
+          <div className="mt-3">
+            <Field label="Confirm password *">
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={form.confirmPassword}
+                onChange={set('confirmPassword')}
+                autoComplete="new-password"
+              />
+            </Field>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 8, marginBottom: 12 }}>
-          <PasswordCheck label="8+ characters" met={pwChecks.length} />
-          <PasswordCheck label="Uppercase letter" met={pwChecks.upper} />
-          <PasswordCheck label="Lowercase letter" met={pwChecks.lower} />
-          <PasswordCheck label="Number" met={pwChecks.number} />
-        </div>
 
-        <label style={labelStyle}>Confirm Password *</label>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={form.confirmPassword}
-          onChange={set('confirmPassword')}
-          style={{ height: 46 }}
-        />
-
-        <label style={{
-          display: 'flex', alignItems: 'flex-start', gap: 8,
-          marginTop: 20, fontSize: 13, color: '#94a3b8', cursor: 'pointer',
-          lineHeight: 1.5,
-        }}>
+        <label className="flex items-start gap-2 text-sm text-ink-muted dark:text-slate-400 cursor-pointer">
           <input
             type="checkbox"
             checked={agreed}
             onChange={e => setAgreed(e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: '#E8952E', marginTop: 2, flexShrink: 0 }}
+            className="h-4 w-4 mt-0.5 rounded accent-brand-500 flex-shrink-0"
           />
           <span>
             I agree to the{' '}
-            <Link to="/" style={{ color: '#2BB5AD', textDecoration: 'none' }}>Terms of Service</Link>
+            <Link to="/" className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold">Terms of Service</Link>
             {' '}and{' '}
-            <Link to="/" style={{ color: '#2BB5AD', textDecoration: 'none' }}>Privacy Policy</Link>
+            <Link to="/" className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold">Privacy Policy</Link>
           </span>
         </label>
 
-        {err && <p style={{ fontSize: 13, color: '#f87171', marginTop: 16 }}>{err}</p>}
+        {err && (
+          <p className="text-sm rounded-xl bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">
+            {err}
+          </p>
+        )}
 
-        <button type="submit" disabled={loading} style={{
-          width: '100%', padding: '14px', borderRadius: 10, border: 'none',
-          background: 'linear-gradient(135deg, #E8952E, #D4811F)',
-          color: '#fff', fontWeight: 600, fontSize: 15,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          marginTop: 24,
-        }}>
-          {loading ? 'Creating account…' : 'Start Free Trial'}
+        <button type="submit" disabled={loading} className="btn-primary w-full h-12 text-base">
+          {loading ? 'Creating account…' : <>Start free trial <AuthIcons.ArrowRight /></>}
         </button>
       </form>
     </AuthLayout>
   )
-}
-
-const sectionLabel = {
-  fontSize: 11, fontWeight: 600, color: '#475569',
-  textTransform: 'uppercase', letterSpacing: '0.08em',
-  marginBottom: 12,
-}
-
-const labelStyle = {
-  display: 'block', fontSize: 14, fontWeight: 600, color: '#e2e8f0', marginBottom: 8,
 }

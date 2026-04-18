@@ -37,15 +37,17 @@ export default function Shell({
   const { theme, toggle } = useTheme()
 
   const navItems = [
-    { key: 'calls',    label: 'Calls',    icon: <Icons.Phone /> },
-    { key: 'schedule', label: 'Schedule', icon: <Icons.Calendar /> },
-    { key: 'stats',    label: 'Stats',    icon: <Icons.BarChart /> },
+    { key: 'calls',     label: 'Calls',     icon: <Icons.Phone /> },
+    { key: 'schedule',  label: 'Schedule',  icon: <Icons.Calendar /> },
+    { key: 'customers', label: 'Customers', icon: <Icons.User /> },
+    { key: 'stats',     label: 'Stats',     icon: <Icons.BarChart /> },
   ]
 
   const tabSubtitle = {
-    calls:    'All inbound calls to your AI receptionist',
-    schedule: 'Upcoming and past appointments',
-    stats:    'Performance and trends',
+    calls:     'All inbound calls to your AI receptionist',
+    schedule:  'Upcoming and past appointments',
+    customers: 'Everyone who has booked through Dovvia',
+    stats:     'Performance and trends',
   }
 
   return (

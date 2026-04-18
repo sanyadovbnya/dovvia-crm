@@ -1,63 +1,60 @@
 import { Link } from 'react-router-dom'
+import { Icons } from './Icons'
+import { useTheme } from '../utils/theme'
 
 function Logo() {
   return (
-    <div style={{
-      width: 64, height: 64,
-      background: 'linear-gradient(135deg, #E8952E, #D4811F)',
-      borderRadius: 18,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      margin: '0 auto 20px',
-      boxShadow: '0 8px 32px rgba(232, 149, 46, 0.3)',
-    }}>
-      <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', fontFamily: 'Inter, sans-serif' }}>D</span>
+    <div className="mx-auto mb-5 h-14 w-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white shadow-float">
+      <Icons.Wrench size={24} />
     </div>
+  )
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme()
+  return (
+    <button
+      onClick={toggle}
+      title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+      className="absolute top-4 right-4 z-10 h-10 w-10 rounded-xl bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-ink-base dark:text-slate-300 flex items-center justify-center shadow-card backdrop-blur transition"
+    >
+      {theme === 'dark' ? <Icons.Sun /> : <Icons.Moon />}
+    </button>
   )
 }
 
 export default function AuthLayout({ title, subtitle, children, footer }) {
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: 24,
-      background: 'radial-gradient(ellipse at top, #1a1040 0%, #0f1117 50%, #0a0b10 100%)',
-    }}>
-      <div style={{ maxWidth: 480, width: '100%' }} className="fade-in">
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-surface-page dark:bg-slate-950 relative overflow-hidden">
+      {/* ambient blobs */}
+      <div aria-hidden className="pointer-events-none absolute -top-32 -left-20 h-96 w-96 rounded-full bg-brand-200/50 dark:bg-brand-500/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-pastel-lavender/60 dark:bg-indigo-500/10 blur-3xl" />
+
+      <ThemeToggle />
+
+      <div className="fade-in relative w-full max-w-md">
+        <div className="text-center mb-6">
           <Logo />
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#f1f5f9' }}>{title}</h1>
-          {subtitle && (
-            <p style={{ color: '#64748b', marginTop: 8, fontSize: 14 }}>{subtitle}</p>
-          )}
+          <h1 className="text-2xl font-bold text-ink-strong dark:text-slate-100">{title}</h1>
+          {subtitle && <p className="mt-1.5 text-sm text-ink-muted dark:text-slate-400">{subtitle}</p>}
         </div>
 
-        <div style={{
-          background: '#13162b',
-          border: '1px solid #1e2347',
-          borderRadius: 16,
-          padding: 32,
-        }}>
+        <div className="card p-7">
           {children}
         </div>
 
         {footer && (
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <div className="text-center mt-6 text-sm text-ink-muted dark:text-slate-400">
             {footer}
           </div>
         )}
 
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 16, marginTop: 32,
-          borderTop: '1px solid #1e2347', paddingTop: 20,
-        }}>
-          <Link to="/" style={{ fontSize: 12, color: '#475569', textDecoration: 'none' }}>Terms</Link>
-          <span style={{ color: '#2d3148' }}>·</span>
-          <Link to="/" style={{ fontSize: 12, color: '#475569', textDecoration: 'none' }}>Privacy</Link>
-          <span style={{ color: '#2d3148' }}>·</span>
-          <span style={{ fontSize: 12, color: '#475569' }}>© 2026 Dovvia</span>
+        <div className="mt-8 pt-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-3 text-xs text-ink-faint dark:text-slate-500">
+          <Link to="/" className="hover:text-ink-base dark:hover:text-slate-300">Terms</Link>
+          <span>·</span>
+          <Link to="/" className="hover:text-ink-base dark:hover:text-slate-300">Privacy</Link>
+          <span>·</span>
+          <span>© 2026 Dovvia</span>
         </div>
       </div>
     </div>

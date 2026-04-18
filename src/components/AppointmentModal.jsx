@@ -7,201 +7,99 @@ const SERVICE_TYPES = [
   'General Home Services', 'Other',
 ]
 
+function Label({ children, required }) {
+  return (
+    <label className="block text-xs font-semibold text-ink-strong dark:text-slate-200 mb-1.5">
+      {children}{required && <span className="text-brand-500"> *</span>}
+    </label>
+  )
+}
+
 export function AppointmentForm({ initial, onSave, onClose, saving }) {
   const [form, setForm] = useState({
-    customer_name: initial?.customer_name || '',
-    customer_phone: initial?.customer_phone || '',
+    customer_name:    initial?.customer_name || '',
+    customer_phone:   initial?.customer_phone || '',
     customer_address: initial?.customer_address || '',
-    service_type: initial?.service_type || 'Appliance Repair',
-    problem: initial?.problem || '',
-    date: initial?.date || '',
-    time_start: initial?.time_start?.slice(0, 5) || '09:00',
-    time_end: initial?.time_end?.slice(0, 5) || '10:00',
-    notes: initial?.notes || '',
+    service_type:     initial?.service_type || 'Appliance Repair',
+    problem:          initial?.problem || '',
+    date:             initial?.date || '',
+    time_start:       initial?.time_start?.slice(0, 5) || '10:00',
+    time_end:         initial?.time_end?.slice(0, 5) || '12:00',
+    notes:            initial?.notes || '',
   })
 
-  function set(field) {
-    return e => setForm(f => ({ ...f, [field]: e.target.value }))
-  }
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    onSave(form)
-  }
+  const set = field => e => setForm(f => ({ ...f, [field]: e.target.value }))
+  function handleSubmit(e) { e.preventDefault(); onSave(form) }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <form onSubmit={handleSubmit} className="space-y-3.5">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label style={lbl}>Customer Name *</label>
-          <input required value={form.customer_name} onChange={set('customer_name')} style={inp} />
+          <Label required>Customer name</Label>
+          <input required value={form.customer_name} onChange={set('customer_name')} />
         </div>
         <div>
-          <label style={lbl}>Phone</label>
-          <input type="tel" value={form.customer_phone} onChange={set('customer_phone')} style={inp} />
+          <Label>Phone</Label>
+          <input type="tel" value={form.customer_phone} onChange={set('customer_phone')} />
         </div>
       </div>
+
       <div>
-        <label style={lbl}>Address</label>
-        <input value={form.customer_address} onChange={set('customer_address')} style={inp} />
+        <Label>Address</Label>
+        <input value={form.customer_address} onChange={set('customer_address')} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label style={lbl}>Service Type</label>
-          <select value={form.service_type} onChange={set('service_type')} style={inp}>
+          <Label>Service type</Label>
+          <select value={form.service_type} onChange={set('service_type')}>
             {SERVICE_TYPES.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
         <div>
-          <label style={lbl}>Date *</label>
-          <input required type="date" value={form.date} onChange={set('date')} style={inp} />
+          <Label required>Date</Label>
+          <input required type="date" value={form.date} onChange={set('date')} />
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label style={lbl}>Start Time *</label>
-          <input required type="time" value={form.time_start} onChange={set('time_start')} style={inp} />
+          <Label required>Start</Label>
+          <input required type="time" value={form.time_start} onChange={set('time_start')} />
         </div>
         <div>
-          <label style={lbl}>End Time *</label>
-          <input required type="time" value={form.time_end} onChange={set('time_end')} style={inp} />
+          <Label required>End</Label>
+          <input required type="time" value={form.time_end} onChange={set('time_end')} />
         </div>
       </div>
+
       <div>
-        <label style={lbl}>Problem / Notes</label>
-        <textarea value={form.problem} onChange={set('problem')} rows={2} style={{ ...inp, resize: 'vertical' }} />
+        <Label>Problem / Notes</Label>
+        <textarea value={form.problem} onChange={set('problem')} rows={2} className="resize-y" />
       </div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-        <button type="submit" disabled={saving} style={{
-          flex: 1, padding: '11px', borderRadius: 8, border: 'none',
-          background: 'linear-gradient(135deg, #E8952E, #D4811F)',
-          color: '#fff', fontWeight: 600, fontSize: 14,
-        }}>
-          {saving ? 'Saving…' : (initial ? 'Save Changes' : 'Create Appointment')}
+
+      <div className="flex gap-2 pt-1">
+        <button type="submit" disabled={saving} className="btn-primary flex-1">
+          {saving ? 'Saving…' : (initial?.customer_name ? 'Save changes' : 'Create appointment')}
         </button>
-        <button type="button" onClick={onClose} style={{
-          padding: '11px 20px', borderRadius: 8, border: '1px solid #2d3148',
-          background: '#1e2347', color: '#94a3b8', fontWeight: 500, fontSize: 14,
-        }}>
-          Cancel
-        </button>
+        <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
       </div>
     </form>
   )
 }
 
-export function AppointmentDetail({ appt, onReschedule, onCancel, onClose, saving }) {
-  const [mode, setMode] = useState('view')
-  const [reschedule, setReschedule] = useState({
-    date: appt.date,
-    time_start: appt.time_start?.slice(0, 5),
-    time_end: appt.time_end?.slice(0, 5),
-  })
-
-  if (mode === 'reschedule') {
-    return (
-      <>
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: '#f1f5f9', marginBottom: 16 }}>Reschedule Appointment</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <label style={lbl}>New Date</label>
-            <input type="date" value={reschedule.date} onChange={e => setReschedule(r => ({ ...r, date: e.target.value }))} style={inp} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={lbl}>Start Time</label>
-              <input type="time" value={reschedule.time_start} onChange={e => setReschedule(r => ({ ...r, time_start: e.target.value }))} style={inp} />
-            </div>
-            <div>
-              <label style={lbl}>End Time</label>
-              <input type="time" value={reschedule.time_end} onChange={e => setReschedule(r => ({ ...r, time_end: e.target.value }))} style={inp} />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button disabled={saving} onClick={() => onReschedule(reschedule.date, reschedule.time_start, reschedule.time_end)} style={{
-              flex: 1, padding: '11px', borderRadius: 8, border: 'none',
-              background: 'linear-gradient(135deg, #E8952E, #D4811F)',
-              color: '#fff', fontWeight: 600, fontSize: 14,
-            }}>
-              {saving ? 'Saving…' : 'Confirm Reschedule'}
-            </button>
-            <button onClick={() => setMode('view')} style={{
-              padding: '11px 20px', borderRadius: 8, border: '1px solid #2d3148',
-              background: '#1e2347', color: '#94a3b8', fontWeight: 500, fontSize: 14,
-            }}>
-              Back
-            </button>
-          </div>
-        </div>
-      </>
-    )
-  }
-
-  const statusColors = {
-    scheduled: { bg: '#0a1628', color: '#60a5fa', border: '#1e3a5f' },
-    completed: { bg: '#052e16', color: '#4ade80', border: '#166534' },
-    cancelled: { bg: '#2d0a0a', color: '#f87171', border: '#7f1d1d' },
-    rescheduled: { bg: '#2d1f00', color: '#fbbf24', border: '#78350f' },
-  }
-  const sc = statusColors[appt.status] || statusColors.scheduled
-
-  return (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>{appt.customer_name}</h3>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{appt.service_type}</p>
-        </div>
-        <span style={{
-          padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-          textTransform: 'uppercase', background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`,
-        }}>
-          {appt.status}
-        </span>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-        <Row label="Date" value={new Date(appt.date + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} />
-        <Row label="Time" value={`${fmtTime(appt.time_start)} – ${fmtTime(appt.time_end)}`} />
-        {appt.customer_phone && <Row label="Phone" value={appt.customer_phone} />}
-        {appt.customer_address && <Row label="Address" value={appt.customer_address} />}
-        {appt.problem && <Row label="Issue" value={appt.problem} />}
-        {appt.notes && <Row label="Notes" value={appt.notes} />}
-      </div>
-
-      {appt.status === 'scheduled' && (
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={() => setMode('reschedule')} style={{
-            flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #2d3148',
-            background: '#1e2347', color: '#E8952E', fontWeight: 600, fontSize: 13,
-          }}>
-            Reschedule
-          </button>
-          <button disabled={saving} onClick={onCancel} style={{
-            flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #7f1d1d',
-            background: '#2d0a0a', color: '#f87171', fontWeight: 600, fontSize: 13,
-          }}>
-            {saving ? 'Cancelling…' : 'Cancel Appointment'}
-          </button>
-        </div>
-      )}
-
-      <button onClick={onClose} style={{
-        width: '100%', marginTop: 10, padding: '10px', borderRadius: 8,
-        border: '1px solid #2d3148', background: 'transparent', color: '#94a3b8',
-        fontSize: 13,
-      }}>
-        Close
-      </button>
-    </>
-  )
+const STATUS_TONE = {
+  scheduled:   'bg-pastel-sky      text-pastel-skyDeep   dark:bg-blue-500/20     dark:text-blue-300',
+  completed:   'bg-pastel-mint     text-pastel-mintDeep  dark:bg-emerald-500/20  dark:text-emerald-300',
+  cancelled:   'bg-pastel-coral    text-pastel-coralDeep dark:bg-red-500/20      dark:text-red-300',
+  rescheduled: 'bg-pastel-peach    text-pastel-peachDeep dark:bg-orange-500/20   dark:text-orange-300',
 }
 
 function Row({ label, value }) {
   return (
-    <div style={{ display: 'flex', gap: 10 }}>
-      <span style={{ minWidth: 70, fontSize: 12, color: '#475569' }}>{label}</span>
-      <span style={{ fontSize: 13, color: '#cbd5e1' }}>{value}</span>
+    <div className="flex gap-3 items-start">
+      <span className="min-w-[68px] text-xs text-ink-muted dark:text-slate-400 pt-0.5">{label}</span>
+      <span className="text-sm text-ink-strong dark:text-slate-100 break-words">{value}</span>
     </div>
   )
 }
@@ -213,31 +111,107 @@ function fmtTime(t) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-export function Modal({ title, children, onClose }) {
+export function AppointmentDetail({ appt, onReschedule, onCancel, onClose, saving }) {
+  const [mode, setMode] = useState('view')
+  const [reschedule, setReschedule] = useState({
+    date:       appt.date,
+    time_start: appt.time_start?.slice(0, 5),
+    time_end:   appt.time_end?.slice(0, 5),
+  })
+
+  if (mode === 'reschedule') {
+    return (
+      <>
+        <h3 className="text-base font-bold text-ink-strong dark:text-slate-100 mb-4">Reschedule appointment</h3>
+        <div className="space-y-3">
+          <div>
+            <Label>New date</Label>
+            <input type="date" value={reschedule.date} onChange={e => setReschedule(r => ({ ...r, date: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Start</Label>
+              <input type="time" value={reschedule.time_start} onChange={e => setReschedule(r => ({ ...r, time_start: e.target.value }))} />
+            </div>
+            <div>
+              <Label>End</Label>
+              <input type="time" value={reschedule.time_end} onChange={e => setReschedule(r => ({ ...r, time_end: e.target.value }))} />
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              disabled={saving}
+              onClick={() => onReschedule(reschedule.date, reschedule.time_start, reschedule.time_end)}
+              className="btn-primary flex-1"
+            >
+              {saving ? 'Saving…' : 'Confirm reschedule'}
+            </button>
+            <button onClick={() => setMode('view')} className="btn-ghost">Back</button>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  const statusClass = STATUS_TONE[appt.status] || STATUS_TONE.scheduled
+
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 99 }} />
-      <div className="fade-in" style={{
-        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-        background: '#13162b', border: '1px solid #1e2347', borderRadius: 16,
-        padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto',
-        zIndex: 100, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-      }}>
-        {title && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>{title}</h2>
-            <button onClick={onClose} style={{
-              background: '#1e2347', border: 'none', borderRadius: 8, padding: 6, color: '#94a3b8',
-            }}>
-              <Icons.X />
-            </button>
-          </div>
-        )}
-        {children}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold text-ink-strong dark:text-slate-100 truncate">{appt.customer_name}</h3>
+          <p className="text-sm text-ink-muted dark:text-slate-400 mt-0.5">{appt.service_type}</p>
+        </div>
+        <span className={`badge ${statusClass}`}>{appt.status}</span>
       </div>
+
+      <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-2.5 mb-5">
+        <Row label="Date" value={new Date(appt.date + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} />
+        <Row label="Time" value={`${fmtTime(appt.time_start)} – ${fmtTime(appt.time_end)}`} />
+        {appt.customer_phone && <Row label="Phone" value={appt.customer_phone} />}
+        {appt.customer_address && <Row label="Address" value={appt.customer_address} />}
+        {appt.problem && <Row label="Issue" value={appt.problem} />}
+        {appt.notes && <Row label="Notes" value={appt.notes} />}
+      </div>
+
+      {appt.status === 'scheduled' && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMode('reschedule')}
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold bg-pastel-peach text-pastel-peachDeep hover:bg-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25 transition"
+          >
+            Reschedule
+          </button>
+          <button
+            disabled={saving}
+            onClick={onCancel}
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold bg-pastel-coral text-pastel-coralDeep hover:bg-red-200 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25 transition"
+          >
+            {saving ? 'Cancelling…' : 'Cancel'}
+          </button>
+        </div>
+      )}
+
+      <button onClick={onClose} className="btn-ghost w-full mt-2">Close</button>
     </>
   )
 }
 
-const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6 }
-const inp = { height: 40, fontSize: 13 }
+export function Modal({ title, children, onClose }) {
+  return (
+    <>
+      <div onClick={onClose} className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" />
+      <div className="fade-in fixed z-50 inset-0 flex items-end sm:items-center justify-center sm:p-6 pointer-events-none">
+        <div className="card w-full sm:max-w-lg max-h-[92vh] overflow-y-auto p-6 pointer-events-auto rounded-t-xl2 sm:rounded-xl2 shadow-pop">
+          {title && (
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-ink-strong dark:text-slate-100">{title}</h2>
+              <button onClick={onClose} className="btn-ghost !p-2"><Icons.X /></button>
+            </div>
+          )}
+          {children}
+        </div>
+      </div>
+    </>
+  )
+}

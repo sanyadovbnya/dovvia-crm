@@ -5,17 +5,10 @@ import { Icons } from './Icons'
 function Section({ title, children }) {
   return (
     <div>
-      <p style={{
-        fontSize: 11, fontWeight: 600, color: '#475569',
-        textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10,
-      }}>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-2">
         {title}
       </p>
-      <div style={{
-        background: '#0f1117', borderRadius: 10, padding: '14px 16px',
-        display: 'flex', flexDirection: 'column', gap: 8,
-        border: '1px solid #1a1d2e',
-      }}>
+      <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-2">
         {children}
       </div>
     </div>
@@ -25,14 +18,17 @@ function Section({ title, children }) {
 function InfoRow({ label, value, icon }) {
   if (!value) return null
   return (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-      <span style={{ minWidth: 76, fontSize: 12, color: '#475569', paddingTop: 1 }}>{label}</span>
-      <span style={{ fontSize: 13, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 4 }}>
-        {icon}{value}
+    <div className="flex gap-3 items-start">
+      <span className="min-w-[76px] text-xs text-ink-muted dark:text-slate-400 pt-0.5">{label}</span>
+      <span className="text-sm text-ink-strong dark:text-slate-100 flex items-center gap-1.5 break-words">
+        {icon && <span className="text-ink-faint dark:text-slate-500">{icon}</span>}
+        {value}
       </span>
     </div>
   )
 }
+
+function digits(s) { return (s || '').replace(/\D/g, '').slice(-10) }
 
 export default function CallDetail({ call, onClose }) {
   const o = callOutputs(call)
@@ -42,68 +38,53 @@ export default function CallDetail({ call, onClose }) {
   const duration = callDuration(call)
   const messages = parseTranscript(transcript)
 
-  const hasCustomerInfo = o.customerName || o.customerPhone || o.customerAddress || call.customer?.number
+  const spoken = o.customerPhone
+  const callerId = call.customer?.number
+  const phonesDiffer = spoken && callerId && digits(spoken) !== digits(callerId)
+
+  const hasCustomerInfo = o.customerName || spoken || o.customerAddress || callerId
   const hasApptInfo = o.serviceType || o.problem || o.appointmentDate || o.appointmentTime
+
+  const name = o.customerName || callerId || 'Unknown Caller'
+  const initial = name.charAt(0).toUpperCase()
 
   return (
     <>
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 49 }}
+        className="fixed inset-0 z-40 bg-slate-900/30 dark:bg-black/60 backdrop-blur-sm"
       />
 
       {/* Panel */}
-      <div
-        className="slide-in"
-        style={{
-          position: 'fixed', top: 0, right: 0, bottom: 0,
-          width: '100%', maxWidth: 520,
-          background: '#13162b', borderLeft: '1px solid #1e2347',
-          overflowY: 'auto', zIndex: 50,
-          display: 'flex', flexDirection: 'column',
-        }}
-      >
+      <aside className="slide-in fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-surface-card dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 overflow-y-auto flex flex-col shadow-pop">
         {/* Header */}
-        <div style={{
-          padding: '20px 24px', borderBottom: '1px solid #1e2347',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          position: 'sticky', top: 0, background: '#13162b', zIndex: 10,
-        }}>
-          <div>
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>
-              Call · {fmtDate(call.createdAt)}
-            </p>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>
-              {o.customerName || call.customer?.number || 'Unknown Caller'}
-            </h2>
-            {call.customer?.number && o.customerName && (
-              <p style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
-                {call.customer.number}
-              </p>
-            )}
+        <header className="sticky top-0 z-10 bg-surface-card/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800 px-5 py-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-11 w-11 shrink-0 rounded-xl bg-pastel-lavender text-pastel-lavDeep dark:bg-indigo-500/20 dark:text-indigo-300 flex items-center justify-center font-bold">
+              {initial}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-ink-muted dark:text-slate-400">Call · {fmtDate(call.createdAt)}</p>
+              <h2 className="text-lg font-bold text-ink-strong dark:text-slate-100 truncate">{name}</h2>
+              {call.customer?.number && o.customerName && (
+                <p className="text-xs text-ink-muted dark:text-slate-400 truncate">{call.customer.number}</p>
+              )}
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: '#1e2347', border: 'none', borderRadius: 8,
-              padding: 8, color: '#94a3b8', marginTop: 2,
-            }}
-          >
+          <button onClick={onClose} className="btn-ghost !p-2">
             <Icons.X />
           </button>
-        </div>
+        </header>
 
         {/* Body */}
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="px-5 py-5 flex flex-col gap-5">
           {/* Status row */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="flex gap-2 flex-wrap items-center">
             <EndReasonBadge reason={call.endedReason} />
-            {o.appointmentBooked !== undefined && (
-              <AppointmentBadge value={o.appointmentBooked} />
-            )}
+            {o.appointmentBooked !== undefined && <AppointmentBadge value={o.appointmentBooked} />}
             {duration !== null && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#64748b' }}>
+              <span className="flex items-center gap-1 text-xs text-ink-muted dark:text-slate-400">
                 <Icons.Clock /> {fmtDuration(duration)}
               </span>
             )}
@@ -111,27 +92,28 @@ export default function CallDetail({ call, onClose }) {
 
           {/* Customer Info */}
           {hasCustomerInfo && (
-            <Section title="Customer Info">
-              <InfoRow label="Name" value={o.customerName} />
-              <InfoRow label="Phone" value={o.customerPhone || call.customer?.number} />
+            <Section title="Customer">
+              <InfoRow label="Name"    value={o.customerName} />
+              <InfoRow label={phonesDiffer ? 'Callback' : 'Phone'} value={spoken || callerId} />
+              {phonesDiffer && <InfoRow label="Called from" value={callerId} />}
               <InfoRow label="Address" value={o.customerAddress} icon={<Icons.MapPin />} />
             </Section>
           )}
 
           {/* Appointment Details */}
           {hasApptInfo && (
-            <Section title="Appointment Details">
+            <Section title="Appointment">
               <InfoRow label="Service" value={o.serviceType} />
               <InfoRow label="Problem" value={o.problem} />
-              <InfoRow label="Date" value={o.appointmentDate} />
-              <InfoRow label="Time" value={o.appointmentTime} />
+              <InfoRow label="Date"    value={o.appointmentDate} />
+              <InfoRow label="Time"    value={o.appointmentTime} />
             </Section>
           )}
 
           {/* Recording */}
           {recording && (
             <Section title="Recording">
-              <audio controls style={{ width: '100%', borderRadius: 8, marginTop: 4 }} src={recording}>
+              <audio controls className="w-full rounded-lg mt-1" src={recording}>
                 Your browser does not support the audio element.
               </audio>
             </Section>
@@ -140,46 +122,54 @@ export default function CallDetail({ call, onClose }) {
           {/* Summary */}
           {summary && (
             <Section title="Call Summary">
-              <p style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.7 }}>{summary}</p>
+              <p className="text-sm text-ink-strong dark:text-slate-200 leading-relaxed">{summary}</p>
             </Section>
           )}
 
           {/* Transcript */}
           {messages.length > 0 && (
-            <Section title="Transcript">
-              <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {messages.map((msg, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span style={{
-                      minWidth: 56, fontSize: 11, fontWeight: 600, paddingTop: 2,
-                      color: msg.role === 'assistant' ? '#2BB5AD' : '#34d399',
-                      textTransform: 'capitalize',
-                    }}>
-                      {msg.role === 'assistant' ? 'Dovvia' : 'Caller'}
-                    </span>
-                    <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>{msg.text}</p>
-                  </div>
-                ))}
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-2">
+                Transcript
+              </p>
+              <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-3 max-h-80 overflow-y-auto">
+                {messages.map((msg, i) => {
+                  const isAssistant = msg.role === 'assistant'
+                  return (
+                    <div key={i} className={`flex ${isAssistant ? 'justify-start' : 'justify-end'}`}>
+                      <div className={`max-w-[85%] rounded-xl px-3 py-2 ${
+                        isAssistant
+                          ? 'bg-white dark:bg-slate-900 text-ink-strong dark:text-slate-100 rounded-bl-sm shadow-card dark:ring-1 dark:ring-slate-800'
+                          : 'bg-brand-500 text-white rounded-br-sm'
+                      }`}>
+                        <p className={`text-[10px] font-semibold uppercase tracking-wider mb-1 ${
+                          isAssistant ? 'text-ink-muted dark:text-slate-400' : 'text-white/75'
+                        }`}>
+                          {isAssistant ? 'Dovvia' : 'Caller'}
+                        </p>
+                        <p className="text-sm leading-relaxed">{msg.text}</p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </Section>
+            </div>
           )}
 
           {/* Raw structured outputs */}
           {Object.keys(o).length > 0 && (
-            <details>
-              <summary style={{ fontSize: 12, color: '#475569', cursor: 'pointer', padding: '6px 0' }}>
+            <details className="group">
+              <summary className="text-xs text-ink-muted dark:text-slate-400 cursor-pointer py-1.5 list-none flex items-center gap-1 select-none">
+                <span className="group-open:rotate-90 transition"><Icons.ChevronRight /></span>
                 Raw structured outputs
               </summary>
-              <pre style={{
-                fontSize: 11, color: '#64748b', background: '#0f1117',
-                padding: 12, borderRadius: 8, marginTop: 8, overflow: 'auto',
-              }}>
+              <pre className="mt-2 text-[11px] text-ink-muted dark:text-slate-400 bg-surface-muted dark:bg-slate-800/60 p-3 rounded-xl overflow-auto">
                 {JSON.stringify(o, null, 2)}
               </pre>
             </details>
           )}
         </div>
-      </div>
+      </aside>
     </>
   )
 }
