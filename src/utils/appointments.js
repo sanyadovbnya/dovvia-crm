@@ -64,7 +64,7 @@ export async function upsertAppointmentsFromCalls(calls) {
 
   const { data, error } = await supabase
     .from('appointments')
-    .upsert(rows, { onConflict: 'call_id', ignoreDuplicates: false })
+    .upsert(rows, { onConflict: 'call_id', ignoreDuplicates: true })
     .select('id')
 
   if (error) {

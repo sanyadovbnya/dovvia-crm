@@ -32,8 +32,31 @@ function result(toolCallId: string, text: string) {
   return json({ results: [{ toolCallId, result: text }] })
 }
 
-function isValidDate(s: unknown): s is string {
-  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+const TZ = 'America/Los_Angeles'
+
+function todayInTZ(): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date())
+  const y = parts.find(p => p.type === 'year')!.value
+  const m = parts.find(p => p.type === 'month')!.value
+  const d = parts.find(p => p.type === 'day')!.value
+  return `${y}-${m}-${d}`
+}
+
+function addDays(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d + n))
+  return dt.toISOString().slice(0, 10)
+}
+
+function resolveDate(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const s = raw.trim().toLowerCase()
+  if (s === 'today') return todayInTZ()
+  if (s === 'tomorrow') return addDays(todayInTZ(), 1)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+  return null
 }
 
 function humanDate(iso: string) {
@@ -75,9 +98,14 @@ Deno.serve(async (req) => {
     try { args = JSON.parse(args) } catch { args = {} }
   }
 
-  const date = args?.date
-  if (!isValidDate(date)) {
-    return result(toolCallId, 'Please provide the date in YYYY-MM-DD format.')
+  const date = resolveDate(args?.date)
+  if (!date) {
+    return result(toolCallId, 'Please provide the date as "today", "tomorrow", or YYYY-MM-DD format.')
+  }
+
+  const today = todayInTZ()
+  if (date < today) {
+    return result(toolCallId, `${humanDate(date)} is in the past. Today is ${humanDate(today)}. Please pick today or a future date.`)
   }
 
   const dow = dowFromISO(date)
@@ -116,7 +144,20 @@ Deno.serve(async (req) => {
     return result(toolCallId, 'I had trouble checking availability — please try again in a moment.')
   }
 
-  const candidateSlots = dow === 6 ? SATURDAY_SLOTS : SLOTS
+  let candidateSlots = dow === 6 ? SATURDAY_SLOTS : SLOTS
+
+  if (date === today) {
+    const nowPT = new Intl.DateTimeFormat('en-GB', {
+      timeZone: TZ, hour: '2-digit', minute: '2-digit', hour12: false,
+    }).format(new Date())
+    const nowSec = nowPT + ':00'
+    candidateSlots = candidateSlots.filter(s => s.start > nowSec)
+  }
+
+  if (candidateSlots.length === 0) {
+    return result(toolCallId, `No remaining slots on ${humanDate(date)}. Suggest the next business day.`)
+  }
+
   const taken = (appts ?? []).map(a => ({ start: a.time_start, end: a.time_end }))
 
   const lines = candidateSlots.map(s => {
