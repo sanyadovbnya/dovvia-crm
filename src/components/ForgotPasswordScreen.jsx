@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen() {
             If an account exists with this email, you&apos;ll receive a password reset link shortly.
           </p>
           <Link
-            to="/crm/login"
+            to="/login"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
           >
             <AuthIcons.ArrowLeft /> Back to sign in
@@ -70,7 +70,7 @@ export default function ForgotPasswordScreen() {
 
       <div className="text-center mt-6">
         <Link
-          to="/crm/login"
+          to="/login"
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
         >
           <AuthIcons.ArrowLeft /> Back to sign in

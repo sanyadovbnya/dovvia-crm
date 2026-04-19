@@ -71,7 +71,7 @@ export default function RegisterScreen() {
     setLoading(true); setErr('')
     try {
       await register(form)
-      navigate('/crm/dashboard')
+      navigate('/dashboard')
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -87,7 +87,7 @@ export default function RegisterScreen() {
         <>
           <p>
             Already have an account?{' '}
-            <Link to="/crm/login" className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold">
+            <Link to="/login" className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold">
               Sign in
             </Link>
           </p>

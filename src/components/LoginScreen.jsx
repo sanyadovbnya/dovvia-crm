@@ -19,7 +19,7 @@ export default function LoginScreen() {
     setLoading(true); setErr('')
     try {
       await login({ email, password })
-      navigate('/crm/dashboard')
+      navigate('/dashboard')
     } catch (e) {
       setErr(e.message)
     } finally {
@@ -34,7 +34,7 @@ export default function LoginScreen() {
       footer={
         <>
           New here?{' '}
-          <Link to="/crm/register" className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold">
+          <Link to="/register" className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold">
             Create an account
           </Link>
         </>
@@ -57,7 +57,7 @@ export default function LoginScreen() {
         <Field
           label="Password"
           action={
-            <Link to="/crm/forgot-password" className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
+            <Link to="/forgot-password" className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
               Forgot?
             </Link>
           }

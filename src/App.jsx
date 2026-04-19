@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { fetchCalls, testConnection } from './api/vapi'
+import { fetchCalls } from './api/vapi'
 import { fmtDuration, callDuration, isBooked, callOutputs } from './utils/formatters'
 import { upsertAppointmentsFromCalls } from './utils/appointments'
 import { getSession, onAuthChange, logout } from './utils/auth'
@@ -16,50 +16,8 @@ import Calendar from './components/Calendar'
 import Stats from './components/Stats'
 import Customers from './components/Customers'
 import Shell from './components/Shell'
+import SettingsModal from './components/SettingsModal'
 import { Icons } from './components/Icons'
-
-function SettingsPanel({ currentKey, onSave, onClose }) {
-  const [key, setKey] = useState('')
-  const [testing, setTesting] = useState(false)
-  const [err, setErr] = useState('')
-
-  async function handleSave() {
-    const k = (key.trim() || currentKey)
-    setTesting(true); setErr('')
-    try {
-      await testConnection(k)
-      onSave(k)
-    } catch {
-      setErr('Invalid key or connection error.')
-    } finally {
-      setTesting(false)
-    }
-  }
-
-  return (
-    <>
-      <div onClick={onClose} className="fixed inset-0 z-40 bg-black/20" />
-      <div className="fade-in fixed z-50 top-20 right-4 sm:right-6 w-[min(92vw,380px)] card p-5">
-        <div className="flex items-center justify-between mb-3">
-          <p className="font-semibold text-ink-strong">Settings</p>
-          <button onClick={onClose} className="text-ink-muted hover:text-ink-strong"><Icons.X /></button>
-        </div>
-        <p className="text-xs font-semibold text-ink-muted mb-2 uppercase tracking-wide">Vapi API Key</p>
-        <input
-          type="password"
-          placeholder="Enter new API key…"
-          value={key}
-          onChange={e => setKey(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSave()}
-        />
-        {err && <p className="mt-2 text-xs text-pastel-coralDeep">{err}</p>}
-        <button onClick={handleSave} disabled={testing} className="btn-primary w-full mt-3">
-          {testing ? 'Testing…' : 'Save & Reconnect'}
-        </button>
-      </div>
-    </>
-  )
-}
 
 function Dashboard({ session, onLogout }) {
   const [apiKey, setApiKey] = useState('')
@@ -149,9 +107,9 @@ function Dashboard({ session, onLogout }) {
       onLogout={onLogout}
     >
       {showSettings && (
-        <SettingsPanel
-          currentKey={apiKey}
-          onSave={handleSaveKey}
+        <SettingsModal
+          currentVapiKey={apiKey}
+          onSaveVapiKey={handleSaveKey}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -266,7 +224,7 @@ export default function App() {
   async function handleLogout() {
     await logout()
     setSession(null)
-    navigate('/crm/login')
+    navigate('/login')
   }
 
   if (loading) {
@@ -279,11 +237,11 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/crm/login" element={session ? <Navigate to="/crm/dashboard" replace /> : <LoginScreen />} />
-      <Route path="/crm/register" element={session ? <Navigate to="/crm/dashboard" replace /> : <RegisterScreen />} />
-      <Route path="/crm/forgot-password" element={<ForgotPasswordScreen />} />
-      <Route path="/crm/dashboard" element={session ? <Dashboard session={session} onLogout={handleLogout} /> : <Navigate to="/crm/login" replace />} />
-      <Route path="*" element={<Navigate to={session ? '/crm/dashboard' : '/crm/login'} replace />} />
+      <Route path="/login" element={session ? <Navigate to="/dashboard" replace /> : <LoginScreen />} />
+      <Route path="/register" element={session ? <Navigate to="/dashboard" replace /> : <RegisterScreen />} />
+      <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+      <Route path="/dashboard" element={session ? <Dashboard session={session} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to={session ? '/dashboard' : '/login'} replace />} />
     </Routes>
   )
 }
