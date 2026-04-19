@@ -18,7 +18,10 @@ export async function apiGet(key, path, params = {}) {
 export async function fetchCalls(key, { limit = 50, createdAtGt, createdAtLt } = {}) {
   const data = await apiGet(key, '/call', { limit, createdAtGt, createdAtLt })
   // Vapi can return array directly or { results: [] }
-  return Array.isArray(data) ? data : (data.results || data.calls || [])
+  const calls = Array.isArray(data) ? data : (data.results || data.calls || [])
+  // Vapi soft-deletes: tombstone rows show up with endedReason='call-deleted'
+  // (or a deletedAt timestamp). Hide them from the dashboard.
+  return calls.filter(c => c.endedReason !== 'call-deleted' && !c.deletedAt)
 }
 
 export async function fetchCall(key, callId) {
