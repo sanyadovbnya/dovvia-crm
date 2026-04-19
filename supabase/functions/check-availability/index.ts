@@ -6,11 +6,13 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
+// Labels use "to" instead of "-" because text-to-speech engines pronounce
+// hyphens as "minus" (e.g. "10am minus 12pm").
 const SLOTS = [
-  { label: '10am-12pm', start: '10:00:00', end: '12:00:00' },
-  { label: '12pm-2pm',  start: '12:00:00', end: '14:00:00' },
-  { label: '2pm-4pm',   start: '14:00:00', end: '16:00:00' },
-  { label: '4pm-6pm',   start: '16:00:00', end: '18:00:00' },
+  { label: '10 a.m. to 12 p.m.', start: '10:00:00', end: '12:00:00' },
+  { label: '12 p.m. to 2 p.m.',  start: '12:00:00', end: '14:00:00' },
+  { label: '2 p.m. to 4 p.m.',   start: '14:00:00', end: '16:00:00' },
+  { label: '4 p.m. to 6 p.m.',   start: '16:00:00', end: '18:00:00' },
 ]
 
 const SATURDAY_SLOTS = SLOTS.slice(0, 2)
