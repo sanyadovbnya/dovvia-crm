@@ -48,6 +48,7 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
     business_address: '',
     business_email: '',
     business_website: '',
+    business_logo_url: '',
     invoice_default_tax_rate: '',
     invoice_next_number: 1001,
     invoice_footer: 'Thank you for your business!',
@@ -230,6 +231,29 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
                   onChange={setI('business_website')}
                 />
               </div>
+            </div>
+            <div>
+              <Label>Logo URL (optional)</Label>
+              <div className="flex gap-3 items-start">
+                <input
+                  className="flex-1"
+                  placeholder="https://mikerepairshop.com/logo.png"
+                  value={inv.business_logo_url}
+                  onChange={setI('business_logo_url')}
+                />
+                {inv.business_logo_url && (
+                  // eslint-disable-next-line jsx-a11y/alt-text
+                  <img
+                    src={inv.business_logo_url}
+                    alt=""
+                    onError={e => { e.currentTarget.style.display = 'none' }}
+                    className="h-10 w-10 rounded-lg object-contain bg-white border border-slate-200 dark:border-slate-700 shrink-0"
+                  />
+                )}
+              </div>
+              <p className="mt-1 text-xs text-ink-muted dark:text-slate-400">
+                Direct image URL (PNG / JPG / SVG). Shown above the shop name on every invoice. Host it on your site or any image host.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

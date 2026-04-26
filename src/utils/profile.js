@@ -10,7 +10,7 @@ export async function loadProfile() {
   if (!s) return null
   const { data, error } = await supabase
     .from('profiles')
-    .select('vapi_key, shop_name, twilio_account_sid, twilio_auth_token, twilio_from_number, business_address, business_email, business_website, invoice_default_tax_rate, invoice_next_number, invoice_footer, google_review_url')
+    .select('vapi_key, shop_name, twilio_account_sid, twilio_auth_token, twilio_from_number, business_address, business_email, business_website, business_logo_url, invoice_default_tax_rate, invoice_next_number, invoice_footer, google_review_url')
     .eq('id', s.user.id)
     .single()
   if (error?.code === 'PGRST116') {
@@ -59,6 +59,7 @@ export async function loadInvoiceConfig() {
     business_address:         p?.business_address || '',
     business_email:           p?.business_email || '',
     business_website:         p?.business_website || '',
+    business_logo_url:        p?.business_logo_url || '',
     invoice_default_tax_rate: p?.invoice_default_tax_rate ?? '',
     invoice_next_number:      p?.invoice_next_number ?? 1001,
     invoice_footer:           p?.invoice_footer || 'Thank you for your business!',
@@ -73,6 +74,7 @@ export async function saveInvoiceConfig(cfg) {
     business_address:         cfg.business_address || null,
     business_email:           cfg.business_email || null,
     business_website:         cfg.business_website || null,
+    business_logo_url:        cfg.business_logo_url || null,
     invoice_default_tax_rate: cfg.invoice_default_tax_rate === '' || cfg.invoice_default_tax_rate == null
       ? null : Number(cfg.invoice_default_tax_rate),
     invoice_next_number:      cfg.invoice_next_number ? Number(cfg.invoice_next_number) : 1001,
