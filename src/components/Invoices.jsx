@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
   fetchInvoices, createInvoice, updateInvoice, markSent, markPaid, deleteInvoice,
-  fmtUSD, recompute, buildMailto,
+  fmtUSD, recompute, buildMailto, aiParseInvoice,
 } from '../utils/invoices'
 import { loadProfile } from '../utils/profile'
 import { Modal } from './AppointmentModal'
@@ -44,6 +44,41 @@ function InvoiceForm({ initial, profile, onSave, onClose, saving }) {
     notes:            initial?.notes || '',
   })
 
+  // ── AI Assist state ────────────────────────────────────────────────────
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiText, setAiText] = useState('')
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiErr, setAiErr] = useState('')
+
+  async function handleAiFill() {
+    if (!aiText.trim()) { setAiErr('Type or paste some notes first.'); return }
+    setAiBusy(true); setAiErr('')
+    try {
+      const draft = await aiParseInvoice(aiText)
+      setForm(f => ({
+        customer_name:    draft.customer_name    || f.customer_name,
+        customer_email:   draft.customer_email   || f.customer_email,
+        customer_phone:   draft.customer_phone   || f.customer_phone,
+        customer_address: draft.customer_address || f.customer_address,
+        serviced_unit:    draft.serviced_unit    || f.serviced_unit,
+        service_date:     draft.service_date     || f.service_date,
+        line_items: draft.line_items?.length
+          ? draft.line_items.map(l => ({ description: l.description, amount: String(l.amount ?? '') }))
+          : f.line_items,
+        tax_rate: draft.tax_rate != null
+          ? String(draft.tax_rate)
+          : f.tax_rate,
+        notes: draft.notes || f.notes,
+      }))
+      setAiOpen(false)
+      setAiText('')
+    } catch (e) {
+      setAiErr(e.message)
+    } finally {
+      setAiBusy(false)
+    }
+  }
+
   const set = field => e => setForm(f => ({ ...f, [field]: e.target.value }))
   function setLine(i, field, value) {
     setForm(f => ({
@@ -80,6 +115,47 @@ function InvoiceForm({ initial, profile, onSave, onClose, saving }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* AI Assist */}
+      <div className="rounded-xl2 border border-dashed border-brand-200 dark:border-brand-500/30 bg-brand-50/50 dark:bg-brand-500/5 px-4 py-3">
+        {!aiOpen ? (
+          <button
+            type="button"
+            onClick={() => setAiOpen(true)}
+            className="w-full text-left flex items-center justify-between gap-2 text-sm font-semibold text-brand-700 dark:text-brand-300"
+          >
+            <span>✨ AI Assist — paste notes in any language, we&apos;ll fill the form</span>
+            <span className="text-xs font-medium text-brand-600 dark:text-brand-400">Try it</span>
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-brand-700 dark:text-brand-300">✨ Paste notes (English or Russian)</p>
+              <button type="button" onClick={() => { setAiOpen(false); setAiText(''); setAiErr('') }} className="text-ink-muted hover:text-ink-strong dark:text-slate-400 dark:hover:text-slate-200">
+                <Icons.X />
+              </button>
+            </div>
+            <textarea
+              rows={3}
+              placeholder="e.g. Крис Майерс, ремонт пеллетной печи, плата управления 400, работа 380, налог 9%, 04/24/2026"
+              value={aiText}
+              onChange={e => setAiText(e.target.value)}
+              className="resize-y"
+            />
+            {aiErr && (
+              <p className="text-xs rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">{aiErr}</p>
+            )}
+            <div className="flex gap-2">
+              <button type="button" onClick={handleAiFill} disabled={aiBusy} className="btn-primary flex-1">
+                {aiBusy ? 'Thinking…' : 'Fill form from notes'}
+              </button>
+            </div>
+            <p className="text-[11px] text-ink-faint dark:text-slate-500">
+              We translate Russian to English and pre-fill the form below. Review before saving.
+            </p>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label required>Customer name</Label>

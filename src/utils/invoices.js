@@ -127,6 +127,28 @@ export async function deleteInvoice(id) {
   if (error) throw new Error(error.message)
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Send free-form notes (any language) to the parse-invoice edge function and
+// get back a structured invoice draft.
+export async function aiParseInvoice(text) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/parse-invoice`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      apikey: SUPABASE_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data.ok) {
+    throw new Error(data?.error || `AI parse failed (${res.status})`)
+  }
+  return data.invoice
+}
+
 export function buildMailto(invoice, profile) {
   const businessName = profile?.shop_name || 'Our shop'
   const subject = `Invoice Attached - ${invoice.serviced_unit || 'Service'}`
