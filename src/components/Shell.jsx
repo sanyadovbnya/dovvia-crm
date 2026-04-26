@@ -40,6 +40,8 @@ export default function Shell({
     { key: 'calls',     label: 'Calls',     icon: <Icons.Phone /> },
     { key: 'schedule',  label: 'Schedule',  icon: <Icons.Calendar /> },
     { key: 'customers', label: 'Customers', icon: <Icons.User /> },
+    { key: 'invoices',  label: 'Invoices',  icon: <Icons.Receipt /> },
+    { key: 'reviews',   label: 'Reviews',   icon: <Icons.Star /> },
     { key: 'stats',     label: 'Stats',     icon: <Icons.BarChart /> },
   ]
 
@@ -47,6 +49,8 @@ export default function Shell({
     calls:     'All inbound calls to your AI receptionist',
     schedule:  'Upcoming and past appointments',
     customers: 'Everyone who has booked through Dovvia',
+    invoices:  'Bill customers after a completed job',
+    reviews:   'Customer feedback and ratings',
     stats:     'Performance and trends',
   }
 

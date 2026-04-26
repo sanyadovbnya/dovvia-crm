@@ -1,0 +1,150 @@
+import { supabase } from '../lib/supabase'
+
+async function session() {
+  const { data: { session: s } } = await supabase.auth.getSession()
+  return s
+}
+
+export function fmtUSD(n) {
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return '$0.00'
+  return Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+}
+
+export function recompute(line_items, tax_rate) {
+  const subtotal = (line_items || []).reduce((s, l) => s + (Number(l.amount) || 0), 0)
+  const tax = subtotal * (Number(tax_rate) || 0) / 100
+  const total = subtotal + tax
+  return {
+    subtotal: Number(subtotal.toFixed(2)),
+    tax_amount: Number(tax.toFixed(2)),
+    total: Number(total.toFixed(2)),
+  }
+}
+
+export async function fetchInvoices() {
+  const s = await session()
+  if (!s) return []
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*')
+    .eq('user_id', s.user.id)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return data || []
+}
+
+export async function fetchInvoice(id) {
+  const s = await session()
+  if (!s) return null
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*')
+    .eq('user_id', s.user.id)
+    .eq('id', id)
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+// Atomically reads + bumps the user's invoice_next_number on profiles.
+async function nextInvoiceNumber(userId) {
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('invoice_next_number')
+    .eq('id', userId)
+    .single()
+  const n = prof?.invoice_next_number || 1001
+  await supabase
+    .from('profiles')
+    .update({ invoice_next_number: n + 1, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+  return n
+}
+
+export async function createInvoice(invoice) {
+  const s = await session()
+  if (!s) throw new Error('Not authenticated')
+  const totals = recompute(invoice.line_items, invoice.tax_rate)
+  const number = invoice.invoice_number || (await nextInvoiceNumber(s.user.id))
+  const payload = {
+    user_id: s.user.id,
+    appointment_id: invoice.appointment_id || null,
+    invoice_number: number,
+    customer_name: invoice.customer_name,
+    customer_email: invoice.customer_email || null,
+    customer_phone: invoice.customer_phone || null,
+    customer_address: invoice.customer_address || null,
+    serviced_unit: invoice.serviced_unit || null,
+    service_date: invoice.service_date,
+    line_items: invoice.line_items || [],
+    tax_rate: Number(invoice.tax_rate) || 0,
+    notes: invoice.notes || null,
+    status: invoice.status || 'draft',
+    ...totals,
+  }
+  const { data, error } = await supabase
+    .from('invoices')
+    .insert(payload)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateInvoice(id, patch) {
+  const s = await session()
+  if (!s) throw new Error('Not authenticated')
+  const totals = patch.line_items
+    ? recompute(patch.line_items, patch.tax_rate ?? 0)
+    : {}
+  const { data, error } = await supabase
+    .from('invoices')
+    .update({ ...patch, ...totals, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', s.user.id)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function markSent(id) {
+  return updateInvoice(id, { status: 'sent', sent_at: new Date().toISOString() })
+}
+
+export async function markPaid(id) {
+  return updateInvoice(id, { status: 'paid', paid_at: new Date().toISOString() })
+}
+
+export async function deleteInvoice(id) {
+  const s = await session()
+  if (!s) throw new Error('Not authenticated')
+  const { error } = await supabase
+    .from('invoices')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', s.user.id)
+  if (error) throw new Error(error.message)
+}
+
+export function buildMailto(invoice, profile) {
+  const businessName = profile?.shop_name || 'Our shop'
+  const subject = `Invoice Attached - ${invoice.serviced_unit || 'Service'}`
+  const firstName = (invoice.customer_name || '').trim().split(/\s+/)[0] || 'there'
+  const dt = new Date(invoice.service_date + 'T00:00').toLocaleDateString('en-US')
+  const lines = [
+    `Hi ${firstName},`,
+    '',
+    `Attached is the invoice for the ${invoice.serviced_unit || 'service'} completed on ${dt}.`,
+    '',
+    'Please let me know if you have any questions.',
+    '',
+    'Thank you,',
+    profile?.invoice_footer ? '' : null,
+    businessName,
+    profile?.business_email || '',
+    profile?.business_website || '',
+  ].filter(l => l !== null).join('\n')
+  const url = `mailto:${invoice.customer_email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`
+  return url
+}

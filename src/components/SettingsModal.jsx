@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { testConnection } from '../api/vapi'
-import { loadTwilioConfig, saveTwilioConfig } from '../utils/profile'
+import { loadTwilioConfig, saveTwilioConfig, loadInvoiceConfig, saveInvoiceConfig } from '../utils/profile'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 
@@ -43,8 +43,23 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
   const [twilioErr, setTwilioErr] = useState('')
   const [twilioOk, setTwilioOk] = useState('')
 
+  // Invoice + Reviews settings
+  const [inv, setInv] = useState({
+    business_address: '',
+    business_email: '',
+    business_website: '',
+    invoice_default_tax_rate: '',
+    invoice_next_number: 1001,
+    invoice_footer: 'Thank you for your business!',
+    google_review_url: '',
+  })
+  const [invSaving, setInvSaving] = useState(false)
+  const [invErr, setInvErr] = useState('')
+  const [invOk, setInvOk] = useState('')
+
   useEffect(() => {
     loadTwilioConfig().then(cfg => setTwilio(t => ({ ...t, ...cfg })))
+    loadInvoiceConfig().then(cfg => setInv(i => ({ ...i, ...cfg })))
   }, [])
 
   async function handleSaveVapi() {
@@ -77,6 +92,21 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
 
   function setT(field) {
     return e => setTwilio(t => ({ ...t, [field]: e.target.value }))
+  }
+
+  async function handleSaveInv() {
+    setInvSaving(true); setInvErr(''); setInvOk('')
+    try {
+      await saveInvoiceConfig(inv)
+      setInvOk('Saved.')
+    } catch (e) {
+      setInvErr(e.message)
+    } finally {
+      setInvSaving(false)
+    }
+  }
+  function setI(field) {
+    return e => setInv(i => ({ ...i, [field]: e.target.value }))
   }
 
   return (
@@ -163,6 +193,90 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
           {twilioOk && <p className="mt-2 text-xs rounded-lg bg-pastel-mint dark:bg-emerald-500/15 text-pastel-mintDeep dark:text-emerald-300 px-3 py-2">{twilioOk}</p>}
           <button onClick={handleSaveTwilio} disabled={twilioSaving} className="btn-primary w-full mt-3">
             {twilioSaving ? 'Saving…' : 'Save SMS Settings'}
+          </button>
+        </Section>
+
+        <div className="border-t border-slate-200 dark:border-slate-800" />
+
+        {/* Invoices + Reviews */}
+        <Section
+          title="Invoices & Reviews"
+          subtitle="Business info shown on invoices, default tax rate, and the Google Business URL we send 4–5 star reviewers to."
+        >
+          <div className="space-y-3">
+            <div>
+              <Label>Business address</Label>
+              <input
+                placeholder="1011 E Cleveland Bay Ln, Spokane, WA"
+                value={inv.business_address}
+                onChange={setI('business_address')}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Business email</Label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={inv.business_email}
+                  onChange={setI('business_email')}
+                />
+              </div>
+              <div>
+                <Label>Website</Label>
+                <input
+                  placeholder="https://mikerepairshop.com"
+                  value={inv.business_website}
+                  onChange={setI('business_website')}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Default tax rate (%)</Label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="9"
+                  value={inv.invoice_default_tax_rate}
+                  onChange={setI('invoice_default_tax_rate')}
+                />
+              </div>
+              <div>
+                <Label>Next invoice #</Label>
+                <input
+                  type="number"
+                  step="1"
+                  placeholder="1001"
+                  value={inv.invoice_next_number}
+                  onChange={setI('invoice_next_number')}
+                />
+                <p className="mt-1 text-xs text-ink-muted dark:text-slate-400">Auto-increments after each new invoice.</p>
+              </div>
+            </div>
+            <div>
+              <Label>Invoice footer</Label>
+              <input
+                placeholder="Thank you for your business!"
+                value={inv.invoice_footer}
+                onChange={setI('invoice_footer')}
+              />
+            </div>
+            <div>
+              <Label>Google Business review URL</Label>
+              <input
+                placeholder="https://g.page/r/your-business/review"
+                value={inv.google_review_url}
+                onChange={setI('google_review_url')}
+              />
+              <p className="mt-1 text-xs text-ink-muted dark:text-slate-400">Customers who rate 4–5 stars get redirected here. Leave blank to keep all reviews in-house.</p>
+            </div>
+          </div>
+
+          {invErr && <p className="mt-3 text-xs rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">{invErr}</p>}
+          {invOk && <p className="mt-3 text-xs rounded-lg bg-pastel-mint dark:bg-emerald-500/15 text-pastel-mintDeep dark:text-emerald-300 px-3 py-2">{invOk}</p>}
+          <button onClick={handleSaveInv} disabled={invSaving} className="btn-primary w-full mt-3">
+            {invSaving ? 'Saving…' : 'Save Invoice & Review Settings'}
           </button>
         </Section>
       </div>

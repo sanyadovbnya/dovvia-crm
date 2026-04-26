@@ -10,12 +10,19 @@ export async function loadProfile() {
   if (!s) return null
   const { data, error } = await supabase
     .from('profiles')
-    .select('vapi_key, shop_name, twilio_account_sid, twilio_auth_token, twilio_from_number')
+    .select('vapi_key, shop_name, twilio_account_sid, twilio_auth_token, twilio_from_number, business_address, business_email, business_website, invoice_default_tax_rate, invoice_next_number, invoice_footer, google_review_url')
     .eq('id', s.user.id)
     .single()
   if (error?.code === 'PGRST116') {
     await supabase.from('profiles').insert({ id: s.user.id })
-    return { vapi_key: '', shop_name: '', twilio_account_sid: '', twilio_auth_token: '', twilio_from_number: '' }
+    return {
+      vapi_key: '', shop_name: '',
+      twilio_account_sid: '', twilio_auth_token: '', twilio_from_number: '',
+      business_address: '', business_email: '', business_website: '',
+      invoice_default_tax_rate: null, invoice_next_number: 1001,
+      invoice_footer: 'Thank you for your business!',
+      google_review_url: '',
+    }
   }
   if (error || !data) return null
   return data
@@ -44,6 +51,37 @@ export async function loadTwilioConfig() {
     twilio_from_number: p?.twilio_from_number || '',
     has_auth_token:     Boolean(p?.twilio_auth_token),
   }
+}
+
+export async function loadInvoiceConfig() {
+  const p = await loadProfile()
+  return {
+    business_address:         p?.business_address || '',
+    business_email:           p?.business_email || '',
+    business_website:         p?.business_website || '',
+    invoice_default_tax_rate: p?.invoice_default_tax_rate ?? '',
+    invoice_next_number:      p?.invoice_next_number ?? 1001,
+    invoice_footer:           p?.invoice_footer || 'Thank you for your business!',
+    google_review_url:        p?.google_review_url || '',
+  }
+}
+
+export async function saveInvoiceConfig(cfg) {
+  const s = await session()
+  if (!s) throw new Error('Not authenticated')
+  const payload = {
+    business_address:         cfg.business_address || null,
+    business_email:           cfg.business_email || null,
+    business_website:         cfg.business_website || null,
+    invoice_default_tax_rate: cfg.invoice_default_tax_rate === '' || cfg.invoice_default_tax_rate == null
+      ? null : Number(cfg.invoice_default_tax_rate),
+    invoice_next_number:      cfg.invoice_next_number ? Number(cfg.invoice_next_number) : 1001,
+    invoice_footer:           cfg.invoice_footer || null,
+    google_review_url:        cfg.google_review_url || null,
+    updated_at: new Date().toISOString(),
+  }
+  const { error } = await supabase.from('profiles').update(payload).eq('id', s.user.id)
+  if (error) throw new Error(error.message)
 }
 
 // Accepts { shop_name, twilio_account_sid, twilio_from_number, twilio_auth_token }.

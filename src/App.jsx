@@ -8,6 +8,7 @@ import { loadVapiKey, saveVapiKey } from './utils/profile'
 import LoginScreen from './components/LoginScreen'
 import RegisterScreen from './components/RegisterScreen'
 import ForgotPasswordScreen from './components/ForgotPasswordScreen'
+import ReviewPage from './components/ReviewPage'
 import SetupScreen from './components/SetupScreen'
 import StatCard from './components/StatCard'
 import CallRow from './components/CallRow'
@@ -15,6 +16,8 @@ import CallDetail from './components/CallDetail'
 import Calendar from './components/Calendar'
 import Stats from './components/Stats'
 import Customers from './components/Customers'
+import Invoices from './components/Invoices'
+import Reviews from './components/Reviews'
 import Shell from './components/Shell'
 import SettingsModal from './components/SettingsModal'
 import { Icons } from './components/Icons'
@@ -194,6 +197,18 @@ function Dashboard({ session, onLogout }) {
         </section>
       )}
 
+      {tab === 'invoices' && (
+        <section className="mt-6">
+          <Invoices />
+        </section>
+      )}
+
+      {tab === 'reviews' && (
+        <section className="mt-6">
+          <Reviews />
+        </section>
+      )}
+
       {tab === 'stats' && (
         <section className="mt-6">
           <Stats calls={calls} loading={loading} />
@@ -240,6 +255,7 @@ export default function App() {
       <Route path="/login" element={session ? <Navigate to="/dashboard" replace /> : <LoginScreen />} />
       <Route path="/register" element={session ? <Navigate to="/dashboard" replace /> : <RegisterScreen />} />
       <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+      <Route path="/r/:token" element={<ReviewPage />} />
       <Route path="/dashboard" element={session ? <Dashboard session={session} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to={session ? '/dashboard' : '/login'} replace />} />
     </Routes>
