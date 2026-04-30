@@ -3,7 +3,7 @@
  * Plugin Name: Dovvia Lead Intake
  * Plugin URI:  https://getdovvia.com
  * Description: Forwards Forminator (or any) form submissions to your Dovvia CRM as a Waiting lead. Sends the shared secret in a custom header so it never appears in the form's webhook URL.
- * Version:     1.3.0
+ * Version:     1.4.0
  * Author:      Dovvia
  * License:     MIT
  * Requires PHP: 7.4
@@ -12,7 +12,7 @@
 if (!defined('ABSPATH')) exit;
 
 define('DOVVIA_LI_OPTION', 'dovvia_lead_intake_settings');
-define('DOVVIA_LI_VERSION', '1.3.0');
+define('DOVVIA_LI_VERSION', '1.4.0');
 
 /* ============================================================
  * Settings model
@@ -92,27 +92,17 @@ function dovvia_li_handle_entry($form_id, $entry_or_id, $field_data_array = null
 }
 
 /**
- * Tries every shape Forminator has used for entry data, in order:
- *   1. $entry->meta_data (most current)
- *   2. $entry->get_meta() per mapped field (newer Pro)
- *   3. $field_data_array passed via the action hook
- *   4. Re-fetch via Forminator_API::get_entry as a last resort
+ * Pulls field-key → value pairs out of whatever Forminator hands us.
  *
- * @return array<string,string> field-key → value
+ * Strategy: $field_data_array is the canonical structure Forminator uses for
+ * email-template substitution, so try it first. Only fall back to
+ * $entry->meta_data if that's empty — meta_data is sometimes not yet populated
+ * during the after_save action.
  */
 function dovvia_li_extract_values($entry, $field_data_array = null) {
     $values = [];
 
-    // 1. entry->meta_data
-    if (is_object($entry) && !empty($entry->meta_data) && is_array($entry->meta_data)) {
-        foreach ($entry->meta_data as $key => $meta) {
-            $val = is_array($meta) && array_key_exists('value', $meta) ? $meta['value'] : $meta;
-            $values[$key] = dovvia_li_flatten_value($val);
-        }
-    }
-
-    // 2. field_data_array — handles both array and object shapes
-    if (empty(array_filter($values)) && is_array($field_data_array)) {
+    if (is_array($field_data_array)) {
         foreach ($field_data_array as $field) {
             $arr = is_object($field) ? get_object_vars($field) : (is_array($field) ? $field : null);
             if (!$arr) continue;
@@ -122,10 +112,11 @@ function dovvia_li_extract_values($entry, $field_data_array = null) {
         }
     }
 
-    // 3. entry->get_meta('field-slug') — older Forminator Pro
-    if (empty(array_filter($values)) && is_object($entry) && method_exists($entry, 'get_meta')) {
-        // We don't know the slug list yet; the caller will retry with mapped slugs.
-        // Provided here for completeness — populated in the dedicated mapper below.
+    if (empty(array_filter($values)) && is_object($entry) && !empty($entry->meta_data) && is_array($entry->meta_data)) {
+        foreach ($entry->meta_data as $key => $meta) {
+            $val = is_array($meta) && array_key_exists('value', $meta) ? $meta['value'] : $meta;
+            $values[$key] = dovvia_li_flatten_value($val);
+        }
     }
 
     return $values;
@@ -495,12 +486,37 @@ function dovvia_li_get_form_fields($form_id) {
         $arr    = $direct + $raw; // direct wins, raw fills gaps
 
         $slug  = $arr['element_id']  ?? $arr['slug'] ?? '';
-        $label = $arr['field_label'] ?? $arr['label'] ?? $arr['name'] ?? $slug;
-        $type  = $arr['type']        ?? '';
+        if (!$slug) continue;
 
-        if ($slug) $out[] = ['slug' => (string) $slug, 'label' => (string) $label, 'type' => (string) $type];
+        // Forminator's slugs follow "<type>-<n>". When the API doesn't expose
+        // an explicit type/label (older versions), fall back to the prefix.
+        $inferred_type = preg_match('/^([a-z]+)-/', $slug, $m) ? $m[1] : '';
+        $type  = $arr['type']        ?? $inferred_type;
+        $label = $arr['field_label'] ?? $arr['label'] ?? '';
+        if ($label === '' || $label === $slug) $label = dovvia_li_humanize_field_type($inferred_type) ?: $slug;
+
+        $out[] = ['slug' => (string) $slug, 'label' => (string) $label, 'type' => (string) $type];
     }
     return $out;
+}
+
+function dovvia_li_humanize_field_type($type) {
+    $labels = [
+        'name'     => 'Name',
+        'email'    => 'Email',
+        'phone'    => 'Phone',
+        'text'     => 'Text',
+        'textarea' => 'Message / details',
+        'address'  => 'Address',
+        'date'     => 'Date',
+        'select'   => 'Dropdown',
+        'radio'    => 'Choice',
+        'checkbox' => 'Checkboxes',
+        'number'   => 'Number',
+        'website'  => 'Website',
+        'captcha'  => 'CAPTCHA',
+    ];
+    return $labels[strtolower($type)] ?? '';
 }
 
 function dovvia_li_render_log() {
