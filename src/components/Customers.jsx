@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { fetchAllAppointments, groupIntoCustomers, topServices, fmtPhone } from '../utils/customers'
+import { fetchAllAppointments, groupIntoCustomers, topServices, fmtPhone, deleteCustomerAppointments } from '../utils/customers'
 import { Icons } from './Icons'
 
 function fmtDate(iso) {
@@ -82,7 +82,12 @@ function CustomerRow({ customer, onClick, active }) {
   )
 }
 
-function CustomerDetail({ customer, onClose }) {
+function CustomerDetail({ customer, onClose, onDeleted }) {
+  const [confirming, setConfirming] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
   const upcoming = customer.appointments.filter(a => {
     const today = new Date().toISOString().slice(0, 10)
     return a.date >= today && a.status !== 'cancelled'
@@ -91,6 +96,19 @@ function CustomerDetail({ customer, onClose }) {
     const today = new Date().toISOString().slice(0, 10)
     return a.date < today || a.status === 'cancelled'
   })
+
+  async function handleDelete() {
+    if (confirmText !== 'YES') return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteCustomerAppointments(customer.appointments.map(a => a.id))
+      onDeleted?.()
+    } catch (e) {
+      setDeleteError(e.message || 'Delete failed')
+      setDeleting(false)
+    }
+  }
 
   return (
     <>
@@ -143,6 +161,58 @@ function CustomerDetail({ customer, onClose }) {
           {past.length > 0 && (
             <ApptList title="History" appts={past} />
           )}
+
+          {/* Danger zone */}
+          <div className="mt-2 pt-5 border-t border-slate-100 dark:border-slate-800">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-pastel-coralDeep dark:text-red-300 mb-2">Danger zone</p>
+            {!confirming ? (
+              <button
+                type="button"
+                onClick={() => { setConfirming(true); setConfirmText(''); setDeleteError('') }}
+                className="rounded-xl2 bg-pastel-coral hover:bg-red-200 text-pastel-coralDeep dark:bg-red-500/15 dark:hover:bg-red-500/25 dark:text-red-300 font-semibold px-4 py-2.5 text-sm w-full"
+              >
+                Delete this customer
+              </button>
+            ) : (
+              <div className="rounded-xl2 bg-pastel-coral/40 dark:bg-red-500/10 border border-red-300/50 dark:border-red-500/30 p-4 space-y-3">
+                <p className="text-sm text-ink-strong dark:text-slate-100">
+                  This will permanently delete <strong>{customer.appointments.length}</strong> appointment{customer.appointments.length === 1 ? '' : 's'} for <strong>{customer.name}</strong>. This cannot be undone.
+                </p>
+                <p className="text-xs text-ink-muted dark:text-slate-400">
+                  Type <span className="font-mono font-bold text-pastel-coralDeep dark:text-red-300">YES</span> to confirm:
+                </p>
+                <input
+                  type="text"
+                  value={confirmText}
+                  onChange={e => setConfirmText(e.target.value)}
+                  placeholder="YES"
+                  autoFocus
+                  className="font-mono"
+                />
+                {deleteError && (
+                  <p className="text-xs text-pastel-coralDeep dark:text-red-300">{deleteError}</p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={confirmText !== 'YES' || deleting}
+                    className="flex-1 rounded-xl2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {deleting ? 'Deleting…' : 'Delete permanently'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setConfirming(false); setConfirmText(''); setDeleteError('') }}
+                    disabled={deleting}
+                    className="rounded-xl2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-medium px-4 py-2.5 text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
     </>
@@ -196,6 +266,14 @@ export default function Customers() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
+
+  function reload() {
+    setLoading(true)
+    fetchAllAppointments()
+      .then(a => setAppointments(a))
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
     let active = true
@@ -275,7 +353,13 @@ export default function Customers() {
         )}
       </div>
 
-      {selected && <CustomerDetail customer={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <CustomerDetail
+          customer={selected}
+          onClose={() => setSelected(null)}
+          onDeleted={() => { setSelected(null); reload() }}
+        />
+      )}
     </div>
   )
 }

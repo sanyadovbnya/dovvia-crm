@@ -82,3 +82,16 @@ export function topServices(customer, n = 3) {
     .slice(0, n)
     .map(([s]) => s)
 }
+
+export async function deleteCustomerAppointments(ids) {
+  if (!ids || ids.length === 0) return { deleted: 0 }
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+  const { error, count } = await supabase
+    .from('appointments')
+    .delete({ count: 'exact' })
+    .in('id', ids)
+    .eq('user_id', session.user.id)
+  if (error) throw new Error(error.message)
+  return { deleted: count || 0 }
+}
