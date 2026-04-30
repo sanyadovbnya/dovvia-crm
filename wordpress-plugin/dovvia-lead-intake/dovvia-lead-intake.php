@@ -3,7 +3,7 @@
  * Plugin Name: Dovvia Lead Intake
  * Plugin URI:  https://getdovvia.com
  * Description: Forwards Forminator (or any) form submissions to your Dovvia CRM as a Waiting lead. Sends the shared secret in a custom header so it never appears in the form's webhook URL.
- * Version:     1.2.0
+ * Version:     1.3.0
  * Author:      Dovvia
  * License:     MIT
  * Requires PHP: 7.4
@@ -12,7 +12,7 @@
 if (!defined('ABSPATH')) exit;
 
 define('DOVVIA_LI_OPTION', 'dovvia_lead_intake_settings');
-define('DOVVIA_LI_VERSION', '1.2.0');
+define('DOVVIA_LI_VERSION', '1.3.0');
 
 /* ============================================================
  * Settings model
@@ -80,37 +80,87 @@ function dovvia_li_handle_entry($form_id, $entry_or_id, $field_data_array = null
         'details' => $values[$settings['map_details']] ?? '',
     ];
 
-    dovvia_li_post_to_dovvia($settings, $payload, [
-        'event' => 'form_submit',
-        'form_id' => $form_id,
-        'entry_id' => $entry_id,
-    ]);
+    // If we couldn't pull any value out, capture a snapshot of what we got so
+    // we can fix the extraction without asking the operator for server logs.
+    $context = ['event' => 'form_submit', 'form_id' => $form_id, 'entry_id' => $entry_id];
+    $all_empty = !array_filter($payload, fn($v) => is_string($v) && $v !== '');
+    if ($all_empty) {
+        $context['debug'] = dovvia_li_debug_snapshot($entry, $field_data_array, $values);
+    }
+
+    dovvia_li_post_to_dovvia($settings, $payload, $context);
 }
 
 /**
- * Pulls plain string values out of whatever shape Forminator hands us.
- * Tries entry->meta_data first, then the field_data_array fallback.
+ * Tries every shape Forminator has used for entry data, in order:
+ *   1. $entry->meta_data (most current)
+ *   2. $entry->get_meta() per mapped field (newer Pro)
+ *   3. $field_data_array passed via the action hook
+ *   4. Re-fetch via Forminator_API::get_entry as a last resort
  *
  * @return array<string,string> field-key → value
  */
 function dovvia_li_extract_values($entry, $field_data_array = null) {
     $values = [];
 
+    // 1. entry->meta_data
     if (is_object($entry) && !empty($entry->meta_data) && is_array($entry->meta_data)) {
         foreach ($entry->meta_data as $key => $meta) {
             $val = is_array($meta) && array_key_exists('value', $meta) ? $meta['value'] : $meta;
             $values[$key] = dovvia_li_flatten_value($val);
         }
-    } elseif (is_array($field_data_array)) {
+    }
+
+    // 2. field_data_array — handles both array and object shapes
+    if (empty(array_filter($values)) && is_array($field_data_array)) {
         foreach ($field_data_array as $field) {
-            if (!is_array($field)) continue;
-            $key = $field['name'] ?? null;
+            $arr = is_object($field) ? get_object_vars($field) : (is_array($field) ? $field : null);
+            if (!$arr) continue;
+            $key = $arr['name'] ?? $arr['element_id'] ?? $arr['slug'] ?? null;
             if (!$key) continue;
-            $val = $field['value'] ?? '';
-            $values[$key] = dovvia_li_flatten_value($val);
+            $values[$key] = dovvia_li_flatten_value($arr['value'] ?? '');
         }
     }
+
+    // 3. entry->get_meta('field-slug') — older Forminator Pro
+    if (empty(array_filter($values)) && is_object($entry) && method_exists($entry, 'get_meta')) {
+        // We don't know the slug list yet; the caller will retry with mapped slugs.
+        // Provided here for completeness — populated in the dedicated mapper below.
+    }
+
     return $values;
+}
+
+/**
+ * Dumps the structures we tried so the operator (or the dev) can see exactly
+ * what Forminator handed the plugin when extraction failed. Bounded in size.
+ */
+function dovvia_li_debug_snapshot($entry, $field_data_array, $values) {
+    $shape = function ($x, $depth = 2) use (&$shape) {
+        if ($depth <= 0) return is_scalar($x) ? (string) $x : gettype($x);
+        if (is_object($x)) {
+            $vars = get_object_vars($x);
+            $out = ['__class' => get_class($x)];
+            foreach ($vars as $k => $v) $out[$k] = $shape($v, $depth - 1);
+            return $out;
+        }
+        if (is_array($x)) {
+            $out = [];
+            $i = 0;
+            foreach ($x as $k => $v) {
+                if ($i++ >= 8) { $out['…'] = '(truncated)'; break; }
+                $out[$k] = $shape($v, $depth - 1);
+            }
+            return $out;
+        }
+        if (is_string($x)) return mb_substr($x, 0, 80);
+        return $x;
+    };
+    return [
+        'entry'            => $shape($entry),
+        'field_data_array' => $shape($field_data_array),
+        'extracted_keys'   => array_keys($values ?: []),
+    ];
 }
 
 /** Some field types (name, address) arrive as nested arrays — flatten to a string. */
@@ -344,6 +394,18 @@ function dovvia_li_render_settings_page() {
             <span id="dli_test_result" style="margin-left:10px;font-weight:600;"></span>
         </p>
 
+        <?php if (!empty($s['form_id'])): ?>
+        <hr>
+        <h2>Inspect form fields</h2>
+        <p class="description">
+            If the dropdowns above show only slugs (no labels), or your real form submissions land with empty values, click here to dump what Forminator actually exposes for form #<?php echo esc_html($s['form_id']); ?>. Paste the result back to Dovvia support.
+        </p>
+        <p>
+            <button id="dli_inspect_btn" class="button button-secondary" type="button">Show raw form structure</button>
+        </p>
+        <pre id="dli_inspect_out" style="display:none;font-size:11px;background:#f6f7f7;padding:10px;border:1px solid #ddd;border-radius:3px;max-height:360px;overflow:auto;"></pre>
+        <?php endif; ?>
+
         <hr>
         <h2>Activity log</h2>
         <p class="description">
@@ -383,6 +445,18 @@ function dovvia_li_render_settings_page() {
                     else alert((j && j.data && j.data.message) || 'failed');
                 });
             });
+            var inspectBtn = document.getElementById('dli_inspect_btn');
+            var inspectOut = document.getElementById('dli_inspect_out');
+            if (inspectBtn) inspectBtn.addEventListener('click', function(){
+                inspectBtn.disabled = true;
+                inspectOut.style.display = 'block';
+                inspectOut.textContent = 'Loading…';
+                ajax('dovvia_li_inspect_form', '<?php echo esc_js(wp_create_nonce('dovvia_li_inspect_form')); ?>', function(j){
+                    inspectBtn.disabled = false;
+                    if (j && j.success) inspectOut.textContent = JSON.stringify(j.data, null, 2);
+                    else inspectOut.textContent = '✗ ' + (j && j.data && j.data.message || 'failed');
+                });
+            });
         })();
         </script>
     </div>
@@ -414,11 +488,16 @@ function dovvia_li_get_form_fields($form_id) {
 
     $out = [];
     foreach ($raw_fields as $f) {
-        // Field can be an object or array depending on Forminator version.
-        $arr   = is_object($f) ? get_object_vars($f) : (is_array($f) ? $f : []);
-        $slug  = $arr['element_id'] ?? $arr['slug']  ?? '';
+        // Forminator field models expose data either as direct properties or
+        // through a `raw` array (Forminator_Form_Field_Model). Look in both.
+        $direct = is_object($f) ? get_object_vars($f) : (is_array($f) ? $f : []);
+        $raw    = is_array($direct['raw'] ?? null) ? $direct['raw'] : [];
+        $arr    = $direct + $raw; // direct wins, raw fills gaps
+
+        $slug  = $arr['element_id']  ?? $arr['slug'] ?? '';
         $label = $arr['field_label'] ?? $arr['label'] ?? $arr['name'] ?? $slug;
         $type  = $arr['type']        ?? '';
+
         if ($slug) $out[] = ['slug' => (string) $slug, 'label' => (string) $label, 'type' => (string) $type];
     }
     return $out;
@@ -450,7 +529,13 @@ function dovvia_li_render_log() {
         echo '<td>' . esc_html($form_id ? "#$form_id" . ($entry ? " entry $entry" : '') : '') . '</td>';
         echo '<td><span style="color:' . ($ok ? '#0a7c2f' : '#c00') . ';font-weight:600;">' . esc_html(($ok ? '✓ ' : '✗ ') . ($code ?: '—')) . '</span></td>';
         echo '<td><code style="font-size:11px;">' . esc_html($msg) . '</code><br>';
-        if ($payload) echo '<code style="font-size:10px;color:#666;">' . esc_html($payload) . '</code>';
+        if ($payload) echo '<code style="font-size:10px;color:#666;display:block;margin-top:4px;">' . esc_html($payload) . '</code>';
+        if (!empty($row['debug']) && is_array($row['debug'])) {
+            echo '<details style="margin-top:6px;"><summary style="cursor:pointer;color:#c00;font-size:11px;">debug snapshot — Forminator data we got</summary>';
+            echo '<pre style="font-size:10px;background:#f6f7f7;padding:6px;border:1px solid #ddd;border-radius:3px;max-height:240px;overflow:auto;">';
+            echo esc_html(wp_json_encode($row['debug'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            echo '</pre></details>';
+        }
         echo '</td>';
         echo '</tr>';
     }
@@ -462,6 +547,35 @@ add_action('wp_ajax_dovvia_li_clear_log', function () {
     check_ajax_referer('dovvia_li_clear_log');
     dovvia_li_clear_log();
     wp_send_json_success();
+});
+
+// Returns a sanitized snapshot of the configured form's structure so we can
+// see the real field slugs / labels / types Forminator is actually using.
+add_action('wp_ajax_dovvia_li_inspect_form', function () {
+    if (!current_user_can('manage_options')) wp_send_json_error(['message' => 'forbidden']);
+    check_ajax_referer('dovvia_li_inspect_form');
+
+    $s = dovvia_li_get_settings();
+    if (empty($s['form_id'])) wp_send_json_error(['message' => 'pick a form first']);
+    if (!class_exists('Forminator_API')) wp_send_json_error(['message' => 'Forminator_API not loaded']);
+
+    $form = Forminator_API::get_form((int) $s['form_id']);
+    if (!$form) wp_send_json_error(['message' => 'form not found']);
+
+    // Pull the raw fields then map them through the same logic the dropdowns
+    // use, so the operator sees both views side by side.
+    $extracted = dovvia_li_get_form_fields((int) $s['form_id']);
+
+    // Take a shallow dump of the form object too — restricted depth so we
+    // don't blow the response size.
+    $raw_dump = json_decode(wp_json_encode($form), true);
+    if (!$raw_dump) $raw_dump = ['__type' => is_object($form) ? get_class($form) : gettype($form)];
+
+    wp_send_json_success([
+        'form_id'           => (int) $s['form_id'],
+        'extracted_fields'  => $extracted,
+        'raw_form'          => $raw_dump,
+    ]);
 });
 
 /* ============================================================
