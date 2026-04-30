@@ -81,6 +81,7 @@ export async function loadInvoiceConfig() {
     google_review_url:        p?.google_review_url || '',
     invoice_email_subject:    p?.invoice_email_subject || DEFAULT_INVOICE_EMAIL_SUBJECT,
     invoice_email_body:       p?.invoice_email_body || DEFAULT_INVOICE_EMAIL_BODY,
+    lead_intake_secret:       p?.lead_intake_secret || '',
   }
 }
 

@@ -6,6 +6,7 @@ import {
   DEFAULT_INVOICE_EMAIL_SUBJECT, DEFAULT_INVOICE_EMAIL_BODY,
 } from '../utils/profile'
 import { EMAIL_TEMPLATE_PLACEHOLDERS } from '../utils/invoices'
+import { leadIntakeUrl } from '../utils/leads'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 
@@ -406,7 +407,71 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
             {invSaving ? 'Saving…' : 'Save Invoice & Review Settings'}
           </button>
         </Section>
+
+        <Section
+          title="Lead intake"
+          subtitle="Wire your contact form (Forminator, Gravity Forms, etc.) to drop submissions into the Leads tab as a Waiting client."
+        >
+          <LeadIntakeRows secret={inv.lead_intake_secret} />
+        </Section>
       </div>
     </Modal>
+  )
+}
+
+function CopyField({ label, value, monospace }) {
+  const [copied, setCopied] = useState(false)
+  async function handleCopy() {
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* clipboard blocked — user can still select */ }
+  }
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="flex gap-2">
+        <input
+          readOnly
+          value={value || ''}
+          onFocus={e => e.target.select()}
+          className={monospace ? 'flex-1 font-mono text-xs' : 'flex-1 text-xs'}
+        />
+        <button type="button" onClick={handleCopy} disabled={!value} className="btn-ghost shrink-0">
+          {copied ? <Icons.Check /> : <Icons.Copy />}
+          <span>{copied ? 'Copied' : 'Copy'}</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function LeadIntakeRows({ secret }) {
+  const url = leadIntakeUrl()
+  const exampleBody = JSON.stringify(
+    { name: '{name-1}', email: '{email-1}', phone: '{phone-1}', details: '{textarea-1}' },
+    null, 2,
+  )
+  return (
+    <div className="space-y-3">
+      <CopyField label="Webhook URL" value={url} monospace />
+      <CopyField label="Header — X-Lead-Secret" value={secret} monospace />
+      <div>
+        <Label>Forminator setup</Label>
+        <ol className="list-decimal list-inside text-xs text-ink-muted dark:text-slate-400 space-y-1">
+          <li>In Forminator, edit your form → <strong>Integrations</strong> → <strong>Webhook</strong>.</li>
+          <li>URL: paste the webhook URL above. Method: POST.</li>
+          <li>Add a custom header named <code className="font-mono">X-Lead-Secret</code> with the secret above.</li>
+          <li>Body format: JSON. Map your fields to <code className="font-mono">name</code>, <code className="font-mono">email</code>, <code className="font-mono">phone</code>, <code className="font-mono">details</code>.</li>
+        </ol>
+        <p className="text-xs text-ink-muted dark:text-slate-400 mt-2">Example JSON body:</p>
+        <pre className="mt-1 text-[11px] bg-surface-muted dark:bg-slate-800/60 px-3 py-2 rounded-lg overflow-x-auto">{exampleBody}</pre>
+      </div>
+      <p className="text-xs text-ink-faint dark:text-slate-500">
+        Treat this secret like a password — anyone with it can drop leads into your account.
+      </p>
+    </div>
   )
 }

@@ -38,6 +38,7 @@ export default function Shell({
 
   const navItems = [
     { key: 'calls',     label: 'Calls',     icon: <Icons.Phone /> },
+    { key: 'leads',     label: 'Leads',     icon: <Icons.Inbox /> },
     { key: 'schedule',  label: 'Schedule',  icon: <Icons.Calendar /> },
     { key: 'customers', label: 'Customers', icon: <Icons.User /> },
     { key: 'invoices',  label: 'Invoices',  icon: <Icons.Receipt /> },
@@ -47,6 +48,7 @@ export default function Shell({
 
   const tabSubtitle = {
     calls:     'All inbound calls to your AI receptionist',
+    leads:     'Web form submissions waiting for a response',
     schedule:  'Upcoming and past appointments',
     customers: 'Everyone who has booked through Dovvia',
     invoices:  'Bill customers after a completed job',

@@ -21,6 +21,7 @@ import Calendar from './components/Calendar'
 import Stats from './components/Stats'
 import Customers from './components/Customers'
 import Invoices from './components/Invoices'
+import Leads from './components/Leads'
 import Reviews from './components/Reviews'
 import Shell from './components/Shell'
 import SettingsModal from './components/SettingsModal'
@@ -195,6 +196,7 @@ function Dashboard({ session, onLogout }) {
     : tab === 'customers' ? customersCards
     : tab === 'invoices'  ? invoicesCards
     : tab === 'reviews'   ? reviewsCards
+    : tab === 'leads'     ? null
     : tab === 'stats'     ? null
     : callsCards
 
@@ -340,6 +342,12 @@ function Dashboard({ session, onLogout }) {
       {tab === 'schedule' && (
         <section className="mt-6">
           <Calendar />
+        </section>
+      )}
+
+      {tab === 'leads' && (
+        <section className="mt-6">
+          <Leads />
         </section>
       )}
 
