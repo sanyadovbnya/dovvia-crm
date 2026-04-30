@@ -1,5 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
-import { fetchAllAppointments, groupIntoCustomers, topServices, fmtPhone, deleteCustomerAppointments } from '../utils/customers'
+import { fetchAllAppointments, groupIntoCustomers, topServices, deleteCustomerAppointments } from '../utils/customers'
+import { fmtPhone } from '../utils/phone'
+import { fmtTime } from '../utils/formatters'
+import { buildInvoiceDraftFromCustomer } from '../utils/invoices'
 import { Icons } from './Icons'
 
 function fmtDate(iso) {
@@ -8,13 +11,6 @@ function fmtDate(iso) {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
   })
-}
-
-function fmtTime(t) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
 const STATUS_TONE = {
@@ -82,7 +78,7 @@ function CustomerRow({ customer, onClick, active }) {
   )
 }
 
-function CustomerDetail({ customer, onClose, onDeleted }) {
+function CustomerDetail({ customer, onClose, onDeleted, onGenerateInvoice }) {
   const [confirming, setConfirming] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -132,6 +128,17 @@ function CustomerDetail({ customer, onClose, onDeleted }) {
         </header>
 
         <div className="px-5 py-5 space-y-5">
+          {/* Quick actions */}
+          {onGenerateInvoice && (
+            <button
+              type="button"
+              onClick={() => onGenerateInvoice(buildInvoiceDraftFromCustomer(customer))}
+              className="btn-primary w-full"
+            >
+              <Icons.Receipt /> Generate Invoice
+            </button>
+          )}
+
           {/* Stat tiles */}
           <div className="grid grid-cols-4 gap-2">
             <StatTile value={customer.total} label="Total" tone="lavender" />
@@ -260,7 +267,7 @@ function ApptList({ title, appts }) {
   )
 }
 
-export default function Customers() {
+export default function Customers({ onGenerateInvoice }) {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -358,6 +365,7 @@ export default function Customers() {
           customer={selected}
           onClose={() => setSelected(null)}
           onDeleted={() => { setSelected(null); reload() }}
+          onGenerateInvoice={onGenerateInvoice}
         />
       )}
     </div>

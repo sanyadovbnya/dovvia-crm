@@ -1,9 +1,5 @@
 import { supabase } from '../lib/supabase'
-
-async function session() {
-  const { data: { session: s } } = await supabase.auth.getSession()
-  return s
-}
+import { getSession } from './auth'
 
 export function fmtUSD(n) {
   if (n === null || n === undefined || Number.isNaN(Number(n))) return '$0.00'
@@ -22,7 +18,7 @@ export function recompute(line_items, tax_rate) {
 }
 
 export async function fetchInvoices() {
-  const s = await session()
+  const s = await getSession()
   if (!s) return []
   const { data, error } = await supabase
     .from('invoices')
@@ -34,7 +30,7 @@ export async function fetchInvoices() {
 }
 
 export async function fetchInvoice(id) {
-  const s = await session()
+  const s = await getSession()
   if (!s) return null
   const { data, error } = await supabase
     .from('invoices')
@@ -62,7 +58,7 @@ async function nextInvoiceNumber(userId) {
 }
 
 export async function createInvoice(invoice) {
-  const s = await session()
+  const s = await getSession()
   if (!s) throw new Error('Not authenticated')
   const totals = recompute(invoice.line_items, invoice.tax_rate)
   const number = invoice.invoice_number || (await nextInvoiceNumber(s.user.id))
@@ -92,7 +88,7 @@ export async function createInvoice(invoice) {
 }
 
 export async function updateInvoice(id, patch) {
-  const s = await session()
+  const s = await getSession()
   if (!s) throw new Error('Not authenticated')
   const totals = patch.line_items
     ? recompute(patch.line_items, patch.tax_rate ?? 0)
@@ -117,7 +113,7 @@ export async function markPaid(id) {
 }
 
 export async function deleteInvoice(id) {
-  const s = await session()
+  const s = await getSession()
   if (!s) throw new Error('Not authenticated')
   const { error } = await supabase
     .from('invoices')
@@ -125,6 +121,72 @@ export async function deleteInvoice(id) {
     .eq('id', id)
     .eq('user_id', s.user.id)
   if (error) throw new Error(error.message)
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+// Builds an invoice prefill draft from a grouped customer record.
+// Used when "Generate Invoice" is clicked from the Customer detail panel.
+export function buildInvoiceDraftFromCustomer(customer) {
+  const topService = Object.entries(customer.services || {})
+    .sort((a, b) => b[1] - a[1])[0]?.[0] || ''
+  const lastAppt = customer.appointments?.[0]
+  return {
+    customer_name: customer.name || '',
+    customer_phone: customer.phone || customer.callerPhone || '',
+    customer_address: customer.address || '',
+    serviced_unit: topService,
+    service_date: lastAppt?.date || todayStr(),
+  }
+}
+
+// Builds an invoice prefill draft from a Vapi call + its (optional) resolution.
+// If outcome is "done" with a work_description/amount, those become a line item.
+// The call's reported problem is folded into notes for context.
+export function buildInvoiceDraftFromCall(call, outputs, resolution) {
+  const callerId = call.customer?.number
+  const draft = {
+    customer_name: outputs.customerName || callerId || '',
+    customer_phone: outputs.customerPhone || callerId || '',
+    customer_address: outputs.customerAddress || '',
+    serviced_unit: outputs.serviceType || '',
+    service_date: (call.createdAt || '').slice(0, 10) || todayStr(),
+    line_items: [],
+    notes: '',
+  }
+  if (resolution?.outcome === 'done' && (resolution.work_description || resolution.amount_cents != null)) {
+    draft.line_items.push({
+      description: resolution.work_description || outputs.serviceType || 'Service',
+      amount: resolution.amount_cents != null ? resolution.amount_cents / 100 : '',
+    })
+  }
+  const noteParts = []
+  if (outputs.problem) noteParts.push(outputs.problem)
+  if (resolution?.notes) noteParts.push(resolution.notes)
+  draft.notes = noteParts.join(' — ')
+  return draft
+}
+
+// Builds the natural-language context string passed to the AI parse-invoice
+// edge function so it can flesh out a polished line item description.
+export function buildAIContextFromCall(call, outputs, resolution) {
+  const lines = []
+  if (outputs.customerName) lines.push(`Customer: ${outputs.customerName}`)
+  const phone = outputs.customerPhone || call.customer?.number
+  if (phone) lines.push(`Phone: ${phone}`)
+  if (outputs.customerAddress) lines.push(`Address: ${outputs.customerAddress}`)
+  const date = (call.createdAt || '').slice(0, 10)
+  if (date) lines.push(`Service date: ${date}`)
+  if (outputs.serviceType) lines.push(`Service type: ${outputs.serviceType}`)
+  if (outputs.problem) lines.push(`Reported problem: ${outputs.problem}`)
+  const summary = outputs.callSummary || call.analysis?.summary
+  if (summary) lines.push(`Call summary: ${summary}`)
+  if (resolution?.work_description) lines.push(`Work performed: ${resolution.work_description}`)
+  if (resolution?.amount_cents != null) lines.push(`Amount charged: $${(resolution.amount_cents / 100).toFixed(2)}`)
+  if (resolution?.notes) lines.push(`Internal notes: ${resolution.notes}`)
+  return lines.join('\n')
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL

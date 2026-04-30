@@ -255,7 +255,7 @@ function InvoiceForm({ initial, profile, onSave, onClose, saving }) {
 
       <div className="flex gap-2 pt-1">
         <button type="submit" disabled={saving} className="btn-primary flex-1">
-          {saving ? 'Saving…' : (initial ? 'Save changes' : 'Create invoice')}
+          {saving ? 'Saving…' : (initial?.id ? 'Save changes' : 'Create invoice')}
         </button>
         <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
       </div>
@@ -343,7 +343,7 @@ function InvoiceDetail({ invoice, profile, onClose, onEdit, onPrint, onMarkSent,
   )
 }
 
-export default function Invoices() {
+export default function Invoices({ initialDraft, onConsumeDraft }) {
   const [invoices, setInvoices] = useState([])
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -366,6 +366,13 @@ export default function Invoices() {
   }
 
   useEffect(() => { reload() }, [])
+
+  useEffect(() => {
+    if (initialDraft) {
+      setModal({ type: 'new', initialDraft })
+      onConsumeDraft?.()
+    }
+  }, [initialDraft, onConsumeDraft])
 
   async function handleCreate(form) {
     setSaving(true); setError('')
@@ -488,6 +495,7 @@ export default function Invoices() {
       {modal?.type === 'new' && (
         <Modal title="New Invoice" onClose={() => setModal(null)}>
           <InvoiceForm
+            initial={modal.initialDraft}
             profile={profile}
             onSave={handleCreate}
             onClose={() => setModal(null)}

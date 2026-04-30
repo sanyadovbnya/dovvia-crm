@@ -6,6 +6,7 @@ import { upsertAppointmentsFromCalls } from './utils/appointments'
 import { fetchAllAppointments, groupIntoCustomers } from './utils/customers'
 import { fetchInvoices, fmtUSD } from './utils/invoices'
 import { fetchReviews, reviewStats } from './utils/reviews'
+import { fetchResolutions, indexResolutions } from './utils/resolutions'
 import { getSession, onAuthChange, logout } from './utils/auth'
 import { loadVapiKey, saveVapiKey } from './utils/profile'
 import LoginScreen from './components/LoginScreen'
@@ -39,6 +40,14 @@ function Dashboard({ session, onLogout }) {
   const [appointments, setAppointments] = useState([])
   const [invoices, setInvoices] = useState([])
   const [reviews, setReviews] = useState([])
+  const [resolutions, setResolutions] = useState({})
+  const [invoiceDraft, setInvoiceDraft] = useState(null)
+
+  function generateInvoiceFor(draft) {
+    setInvoiceDraft(draft)
+    setSelected(null)
+    setTab('invoices')
+  }
 
   const userMeta = session?.user?.user_metadata || {}
   const company = userMeta.company
@@ -66,6 +75,15 @@ function Dashboard({ session, onLogout }) {
   }, [apiKey])
 
   useEffect(() => { loadCalls() }, [loadCalls])
+
+  const loadResolutions = useCallback(async () => {
+    try {
+      const rows = await fetchResolutions()
+      setResolutions(indexResolutions(rows))
+    } catch { /* table may not exist yet */ }
+  }, [])
+
+  useEffect(() => { if (apiKey) loadResolutions() }, [apiKey, loadResolutions])
 
   useEffect(() => {
     if (!apiKey) return
@@ -106,6 +124,7 @@ function Dashboard({ session, onLogout }) {
   const todayCalls = calls.filter(c => new Date(c.createdAt) >= today)
   const bookedCalls = calls.filter(isBooked)
   const waitingCalls = calls.filter(isWaiting)
+  const doneCalls = calls.filter(c => resolutions[c.id]?.outcome === 'done')
   const durations = calls.map(callDuration).filter(d => d !== null)
   const avgDuration = durations.length
     ? durations.reduce((a, b) => a + b, 0) / durations.length
@@ -183,6 +202,7 @@ function Dashboard({ session, onLogout }) {
     let pool = calls
     if (callsFilter === 'booked')  pool = pool.filter(isBooked)
     if (callsFilter === 'waiting') pool = pool.filter(isWaiting)
+    if (callsFilter === 'done')    pool = pool.filter(c => resolutions[c.id]?.outcome === 'done')
     if (!search.trim()) return pool
     const q = search.toLowerCase()
     return pool.filter(c => {
@@ -230,6 +250,7 @@ function Dashboard({ session, onLogout }) {
               { key: 'all',     label: 'All',     count: calls.length },
               { key: 'booked',  label: 'Booked',  count: bookedCalls.length },
               { key: 'waiting', label: 'Waiting', count: waitingCalls.length },
+              { key: 'done',    label: 'Done',    count: doneCalls.length },
             ].map(f => {
               const active = callsFilter === f.key
               return (
@@ -267,8 +288,14 @@ function Dashboard({ session, onLogout }) {
           {/* Call list */}
           <div className="card overflow-hidden">
             <div className="hidden sm:grid grid-cols-[1fr_128px_112px_56px_20px] items-center gap-3 px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-surface-muted/40 dark:bg-slate-800/40">
-              {['Caller', 'Date & Time', 'Status', 'Duration', ''].map((h, i) => (
-                <span key={i} className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400">{h}</span>
+              {[
+                { label: 'Caller' },
+                { label: 'Date & Time', align: 'text-right' },
+                { label: 'Status' },
+                { label: 'Duration', align: 'text-center' },
+                { label: '' },
+              ].map((h, i) => (
+                <span key={i} className={`text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 ${h.align || ''}`}>{h.label}</span>
               ))}
             </div>
 
@@ -286,6 +313,7 @@ function Dashboard({ session, onLogout }) {
                   {search ? 'No calls match your search.'
                     : callsFilter === 'waiting' ? 'No callers waiting on Mike.'
                     : callsFilter === 'booked'  ? 'No booked calls yet.'
+                    : callsFilter === 'done'    ? 'No completed jobs yet.'
                     : 'No calls yet.'}
                 </p>
                 {!search && callsFilter === 'all' && (
@@ -298,6 +326,7 @@ function Dashboard({ session, onLogout }) {
                   <CallRow
                     key={call.id}
                     call={call}
+                    resolution={resolutions[call.id]}
                     active={selected?.id === call.id}
                     onClick={() => setSelected(selected?.id === call.id ? null : call)}
                   />
@@ -316,13 +345,16 @@ function Dashboard({ session, onLogout }) {
 
       {tab === 'customers' && (
         <section className="mt-6">
-          <Customers />
+          <Customers onGenerateInvoice={generateInvoiceFor} />
         </section>
       )}
 
       {tab === 'invoices' && (
         <section className="mt-6">
-          <Invoices />
+          <Invoices
+            initialDraft={invoiceDraft}
+            onConsumeDraft={() => setInvoiceDraft(null)}
+          />
         </section>
       )}
 
@@ -339,7 +371,13 @@ function Dashboard({ session, onLogout }) {
       )}
 
       {selected && (
-        <CallDetail call={selected} onClose={() => setSelected(null)} />
+        <CallDetail
+          call={selected}
+          resolution={resolutions[selected.id]}
+          onResolutionChange={loadResolutions}
+          onGenerateInvoice={generateInvoiceFor}
+          onClose={() => setSelected(null)}
+        />
       )}
     </Shell>
   )

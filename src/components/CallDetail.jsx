@@ -1,6 +1,10 @@
+import { useState } from 'react'
 import { fmtDate, fmtDuration, callDuration, parseTranscript, callOutputs, isWaiting } from '../utils/formatters'
+import { aiParseInvoice, buildInvoiceDraftFromCall, buildAIContextFromCall } from '../utils/invoices'
+import { phoneDigits } from '../utils/phone'
 import { EndReasonBadge, AppointmentBadge } from './Badges'
 import { Icons } from './Icons'
+import ResolutionForm from './ResolutionForm'
 
 function Section({ title, children }) {
   return (
@@ -28,9 +32,60 @@ function InfoRow({ label, value, icon }) {
   )
 }
 
-function digits(s) { return (s || '').replace(/\D/g, '').slice(-10) }
 
-export default function CallDetail({ call, onClose }) {
+function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice }) {
+  const [busy, setBusy] = useState(false)
+  const baseline = buildInvoiceDraftFromCall(call, outputs, resolution)
+
+  // Worth running AI? Only when there's diagnostic context worth polishing.
+  const aiWorthwhile =
+    resolution?.outcome === 'done' &&
+    (resolution.work_description || outputs.problem)
+
+  async function handleClick() {
+    setBusy(true)
+    try {
+      let draft = baseline
+      if (aiWorthwhile) {
+        try {
+          const ai = await aiParseInvoice(buildAIContextFromCall(call, outputs, resolution))
+          draft = {
+            ...baseline,
+            // Keep deterministic customer fields; only let AI fill if we have nothing.
+            customer_name:    baseline.customer_name    || ai.customer_name    || '',
+            customer_phone:   baseline.customer_phone   || ai.customer_phone   || '',
+            customer_address: baseline.customer_address || ai.customer_address || '',
+            serviced_unit:    ai.serviced_unit || baseline.serviced_unit,
+            line_items:       ai.line_items?.length ? ai.line_items.map(l => ({
+              description: l.description || '',
+              amount: l.amount ?? '',
+            })) : baseline.line_items,
+            tax_rate:         ai.tax_rate ?? undefined,
+            notes:            ai.notes || baseline.notes,
+          }
+        } catch { /* AI failed — fall through with baseline silently */ }
+      }
+      onGenerateInvoice(draft)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={busy}
+      className="btn-primary w-full"
+    >
+      {busy
+        ? <><Icons.Spinner /> {aiWorthwhile ? 'Drafting with AI…' : 'Preparing…'}</>
+        : <><Icons.Receipt /> Generate Invoice{aiWorthwhile ? ' ✨' : ''}</>}
+    </button>
+  )
+}
+
+export default function CallDetail({ call, resolution, onResolutionChange, onGenerateInvoice, onClose }) {
   const o = callOutputs(call)
   const summary = o.callSummary || call.analysis?.summary
   const transcript = call.artifact?.transcript
@@ -40,7 +95,7 @@ export default function CallDetail({ call, onClose }) {
 
   const spoken = o.customerPhone
   const callerId = call.customer?.number
-  const phonesDiffer = spoken && callerId && digits(spoken) !== digits(callerId)
+  const phonesDiffer = spoken && callerId && phoneDigits(spoken) !== phoneDigits(callerId)
 
   const hasCustomerInfo = o.customerName || spoken || o.customerAddress || callerId
   const hasApptInfo = o.serviceType || o.problem || o.appointmentDate || o.appointmentTime
@@ -90,6 +145,23 @@ export default function CallDetail({ call, onClose }) {
               </span>
             )}
           </div>
+
+          {/* Quick actions */}
+          {onGenerateInvoice && (
+            <GenerateInvoiceButton
+              call={call}
+              outputs={o}
+              resolution={resolution}
+              onGenerateInvoice={onGenerateInvoice}
+            />
+          )}
+
+          {/* Resolution */}
+          <ResolutionForm
+            callId={call.id}
+            resolution={resolution}
+            onSaved={onResolutionChange}
+          />
 
           {/* Customer Info */}
           {hasCustomerInfo && (
