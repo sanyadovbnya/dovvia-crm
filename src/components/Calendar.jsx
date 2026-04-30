@@ -110,7 +110,13 @@ export default function Calendar() {
           <button onClick={prevWeek} className="h-9 w-9 rounded-xl bg-white hover:bg-surface-muted border border-slate-100 flex items-center justify-center text-ink-base dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300" title="Previous week">
             <span className="rotate-180 inline-block"><Icons.ChevronRight /></span>
           </button>
-          <button onClick={goToday} className="btn-ghost">Today</button>
+          <button onClick={goToday} className="btn-ghost tabular-nums" title="Jump to current week">
+            {(() => {
+              const pad = n => String(n).padStart(2, '0')
+              const fmt = d => `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`
+              return `${fmt(days[0])} – ${fmt(days[6])}`
+            })()}
+          </button>
           <button onClick={nextWeek} className="h-9 w-9 rounded-xl bg-white hover:bg-surface-muted border border-slate-100 flex items-center justify-center text-ink-base dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300" title="Next week">
             <Icons.ChevronRight />
           </button>
