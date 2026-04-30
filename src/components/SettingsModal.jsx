@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { testConnection } from '../api/vapi'
-import { loadTwilioConfig, saveTwilioConfig, loadInvoiceConfig, saveInvoiceConfig, DEFAULT_INVOICE_EMAIL_SUBJECT, DEFAULT_INVOICE_EMAIL_BODY } from '../utils/profile'
+import {
+  loadTwilioConfig, saveTwilioConfig, loadInvoiceConfig, saveInvoiceConfig,
+  uploadBusinessLogo, removeBusinessLogo,
+  DEFAULT_INVOICE_EMAIL_SUBJECT, DEFAULT_INVOICE_EMAIL_BODY,
+} from '../utils/profile'
 import { EMAIL_TEMPLATE_PLACEHOLDERS } from '../utils/invoices'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
@@ -60,6 +64,35 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
   const [invSaving, setInvSaving] = useState(false)
   const [invErr, setInvErr] = useState('')
   const [invOk, setInvOk] = useState('')
+  const [logoUploading, setLogoUploading] = useState(false)
+  const logoInputRef = useRef(null)
+
+  async function handleLogoFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoUploading(true); setInvErr('')
+    try {
+      const url = await uploadBusinessLogo(file)
+      setInv(i => ({ ...i, business_logo_url: url }))
+    } catch (err) {
+      setInvErr(err.message || 'Upload failed')
+    } finally {
+      setLogoUploading(false)
+      if (logoInputRef.current) logoInputRef.current.value = ''
+    }
+  }
+
+  async function handleLogoRemove() {
+    setLogoUploading(true); setInvErr('')
+    try {
+      await removeBusinessLogo()
+      setInv(i => ({ ...i, business_logo_url: '' }))
+    } catch (err) {
+      setInvErr(err.message || 'Remove failed')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
 
   useEffect(() => {
     loadTwilioConfig().then(cfg => setTwilio(t => ({ ...t, ...cfg })))
@@ -236,26 +269,52 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
               </div>
             </div>
             <div>
-              <Label>Logo URL (optional)</Label>
-              <div className="flex gap-3 items-start">
-                <input
-                  className="flex-1"
-                  placeholder="https://mikerepairshop.com/logo.png"
-                  value={inv.business_logo_url}
-                  onChange={setI('business_logo_url')}
-                />
-                {inv.business_logo_url && (
+              <Label>Logo (optional)</Label>
+              <div className="flex gap-3 items-center">
+                {inv.business_logo_url ? (
                   // eslint-disable-next-line jsx-a11y/alt-text
                   <img
                     src={inv.business_logo_url}
                     alt=""
                     onError={e => { e.currentTarget.style.display = 'none' }}
-                    className="h-10 w-10 rounded-lg object-contain bg-white border border-slate-200 dark:border-slate-700 shrink-0"
+                    className="h-14 w-14 rounded-lg object-contain bg-white border border-slate-200 dark:border-slate-700 shrink-0"
                   />
+                ) : (
+                  <div className="h-14 w-14 rounded-lg bg-surface-muted dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 shrink-0 flex items-center justify-center text-ink-faint dark:text-slate-500">
+                    <Icons.Image />
+                  </div>
                 )}
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                  onChange={handleLogoFile}
+                  className="hidden"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={logoUploading}
+                    className="btn-ghost text-xs"
+                  >
+                    {logoUploading
+                      ? <><Icons.Spinner /> Uploading…</>
+                      : (inv.business_logo_url ? 'Replace logo' : 'Upload logo')}
+                  </button>
+                  {inv.business_logo_url && !logoUploading && (
+                    <button
+                      type="button"
+                      onClick={handleLogoRemove}
+                      className="btn-ghost text-xs hover:text-pastel-coralDeep dark:hover:text-red-300"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="mt-1 text-xs text-ink-muted dark:text-slate-400">
-                Direct image URL (PNG / JPG / SVG). Shown above the shop name on every invoice. Host it on your site or any image host.
+                PNG, JPG, WebP, or SVG. Up to 2&nbsp;MB. Shown above the shop name on every invoice.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">

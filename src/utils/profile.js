@@ -132,3 +132,40 @@ export async function saveTwilioConfig(cfg) {
   const { error } = await supabase.from('profiles').update(payload).eq('id', s.user.id)
   if (error) throw new Error(error.message)
 }
+
+const LOGO_BUCKET = 'business-logos'
+const LOGO_ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
+const LOGO_MAX_BYTES = 2 * 1024 * 1024 // 2 MB
+
+// Uploads a logo file to the per-user folder in the public business-logos
+// bucket and returns its public URL with a cache-busting suffix so previews
+// pick up replacements immediately. Caller is expected to persist the URL
+// via saveInvoiceConfig.
+export async function uploadBusinessLogo(file) {
+  if (!file) throw new Error('No file selected')
+  if (!LOGO_ALLOWED_TYPES.includes(file.type)) throw new Error('Use PNG, JPG, WebP, or SVG')
+  if (file.size > LOGO_MAX_BYTES) throw new Error('Logo must be under 2 MB')
+
+  const s = await getSession()
+  if (!s) throw new Error('Not authenticated')
+
+  const path = `${s.user.id}/logo`
+  const { error: uploadErr } = await supabase
+    .storage
+    .from(LOGO_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: true })
+  if (uploadErr) throw new Error(uploadErr.message)
+
+  const { data: { publicUrl } } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path)
+  return `${publicUrl}?v=${Date.now()}`
+}
+
+export async function removeBusinessLogo() {
+  const s = await getSession()
+  if (!s) throw new Error('Not authenticated')
+  const { error } = await supabase.storage.from(LOGO_BUCKET).remove([`${s.user.id}/logo`])
+  // 404 / object-not-found is fine — the row may already point to a stale URL.
+  if (error && !/not.*found|does.*not.*exist/i.test(error.message)) {
+    throw new Error(error.message)
+  }
+}
