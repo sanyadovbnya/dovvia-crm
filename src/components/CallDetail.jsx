@@ -1,4 +1,4 @@
-import { fmtDate, fmtDuration, callDuration, parseTranscript, callOutputs } from '../utils/formatters'
+import { fmtDate, fmtDuration, callDuration, parseTranscript, callOutputs, isWaiting } from '../utils/formatters'
 import { EndReasonBadge, AppointmentBadge } from './Badges'
 import { Icons } from './Icons'
 
@@ -83,6 +83,7 @@ export default function CallDetail({ call, onClose }) {
           <div className="flex gap-2 flex-wrap items-center">
             <EndReasonBadge reason={call.endedReason} />
             {o.appointmentBooked !== undefined && <AppointmentBadge value={o.appointmentBooked} />}
+            {isWaiting(call) && <span className="badge badge-yellow">Waiting on callback</span>}
             {duration !== null && (
               <span className="flex items-center gap-1 text-xs text-ink-muted dark:text-slate-400">
                 <Icons.Clock /> {fmtDuration(duration)}

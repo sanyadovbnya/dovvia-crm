@@ -13,6 +13,7 @@ const NAME_MAP = {
   'Service Type': 'serviceType',
   'Problem Description': 'problem',
   'Customer Sentiment': 'customerSentiment',
+  'Wants Callback': 'wantsCallback',
 }
 
 export function normalizeStructuredOutputs(call) {

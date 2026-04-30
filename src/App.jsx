@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { fetchCalls } from './api/vapi'
-import { fmtDuration, callDuration, isBooked, callOutputs } from './utils/formatters'
+import { fmtDuration, callDuration, isBooked, isWaiting, callOutputs } from './utils/formatters'
 import { upsertAppointmentsFromCalls } from './utils/appointments'
 import { fetchAllAppointments, groupIntoCustomers } from './utils/customers'
 import { fetchInvoices, fmtUSD } from './utils/invoices'
@@ -35,6 +35,7 @@ function Dashboard({ session, onLogout }) {
   const [search, setSearch] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [tab, setTab] = useState('calls')
+  const [callsFilter, setCallsFilter] = useState('all') // 'all' | 'booked' | 'waiting'
   const [appointments, setAppointments] = useState([])
   const [invoices, setInvoices] = useState([])
   const [reviews, setReviews] = useState([])
@@ -104,6 +105,7 @@ function Dashboard({ session, onLogout }) {
 
   const todayCalls = calls.filter(c => new Date(c.createdAt) >= today)
   const bookedCalls = calls.filter(isBooked)
+  const waitingCalls = calls.filter(isWaiting)
   const durations = calls.map(callDuration).filter(d => d !== null)
   const avgDuration = durations.length
     ? durations.reduce((a, b) => a + b, 0) / durations.length
@@ -112,10 +114,10 @@ function Dashboard({ session, onLogout }) {
   // Per-tab stat cards
   const callsCards = (
     <>
-      <StatCard label="Total Calls"   value={calls.length}              sub="all time"     tone="lavender" icon={<Icons.Phone />} />
-      <StatCard label="Today"         value={todayCalls.length}         sub="calls today"  tone="sky"      icon={<Icons.Microphone />} />
-      <StatCard label="Appointments"  value={bookedCalls.length}        sub="booked total" tone="mint"     icon={<Icons.Calendar />} />
-      <StatCard label="Avg Duration"  value={fmtDuration(avgDuration)}  sub="per call"     tone="peach"    icon={<Icons.Clock />} />
+      <StatCard label="Total Calls"   value={calls.length}              sub="all time"           tone="lavender" icon={<Icons.Phone />} />
+      <StatCard label="Today"         value={todayCalls.length}         sub="calls today"        tone="sky"      icon={<Icons.Microphone />} />
+      <StatCard label="Appointments"  value={bookedCalls.length}        sub="booked total"       tone="mint"     icon={<Icons.Calendar />} />
+      <StatCard label="Waiting"       value={waitingCalls.length}       sub="want a callback"    tone="peach"    icon={<Icons.Clock />} />
     </>
   )
 
@@ -177,20 +179,24 @@ function Dashboard({ session, onLogout }) {
     : tab === 'stats'     ? null
     : callsCards
 
-  const filtered = search.trim()
-    ? calls.filter(c => {
-        const q = search.toLowerCase()
-        const o = callOutputs(c)
-        return (
-          (o.customerName || '').toLowerCase().includes(q) ||
-          (o.customerPhone || '').includes(q) ||
-          (c.customer?.number || '').includes(q) ||
-          (o.serviceType || '').toLowerCase().includes(q) ||
-          (o.problem || '').toLowerCase().includes(q) ||
-          (o.callSummary || c.analysis?.summary || '').toLowerCase().includes(q)
-        )
-      })
-    : calls
+  const filtered = (() => {
+    let pool = calls
+    if (callsFilter === 'booked')  pool = pool.filter(isBooked)
+    if (callsFilter === 'waiting') pool = pool.filter(isWaiting)
+    if (!search.trim()) return pool
+    const q = search.toLowerCase()
+    return pool.filter(c => {
+      const o = callOutputs(c)
+      return (
+        (o.customerName || '').toLowerCase().includes(q) ||
+        (o.customerPhone || '').includes(q) ||
+        (c.customer?.number || '').includes(q) ||
+        (o.serviceType || '').toLowerCase().includes(q) ||
+        (o.problem || '').toLowerCase().includes(q) ||
+        (o.callSummary || c.analysis?.summary || '').toLowerCase().includes(q)
+      )
+    })
+  })()
 
   return (
     <Shell
@@ -218,6 +224,29 @@ function Dashboard({ session, onLogout }) {
 
       {tab === 'calls' && (
         <section className="mt-6">
+          {/* Filter chips */}
+          <div className="flex gap-2 mb-3">
+            {[
+              { key: 'all',     label: 'All',     count: calls.length },
+              { key: 'booked',  label: 'Booked',  count: bookedCalls.length },
+              { key: 'waiting', label: 'Waiting', count: waitingCalls.length },
+            ].map(f => {
+              const active = callsFilter === f.key
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setCallsFilter(f.key)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${active
+                    ? 'bg-brand-500 text-white shadow-sm'
+                    : 'bg-surface-muted text-ink-muted hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'}`}
+                >
+                  {f.label}
+                  <span className={`tabular-nums ${active ? 'opacity-90' : 'opacity-70'}`}>· {f.count}</span>
+                </button>
+              )
+            })}
+          </div>
+
           {/* Search */}
           <div className="relative mb-4">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint dark:text-slate-500"><Icons.Search /></span>
@@ -254,9 +283,12 @@ function Dashboard({ session, onLogout }) {
                   <Icons.Phone />
                 </div>
                 <p className="text-ink-strong dark:text-slate-100 font-medium">
-                  {search ? 'No calls match your search.' : 'No calls yet.'}
+                  {search ? 'No calls match your search.'
+                    : callsFilter === 'waiting' ? 'No callers waiting on Mike.'
+                    : callsFilter === 'booked'  ? 'No booked calls yet.'
+                    : 'No calls yet.'}
                 </p>
-                {!search && (
+                {!search && callsFilter === 'all' && (
                   <p className="text-sm text-ink-muted dark:text-slate-400 mt-1">When a customer calls Max, they&apos;ll show up here.</p>
                 )}
               </div>

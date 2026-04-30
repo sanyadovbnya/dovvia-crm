@@ -36,6 +36,12 @@ export function isBooked(call) {
   return v === true || v === 'true' || v === 'yes' || v === 'Yes'
 }
 
+export function isWaiting(call) {
+  const o = callOutputs(call)
+  const v = o.wantsCallback
+  return !isBooked(call) && (v === true || v === 'true' || v === 'yes' || v === 'Yes')
+}
+
 export function getCallerName(call) {
   const o = callOutputs(call)
   return o.customerName || call.customer?.number || 'Unknown Caller'

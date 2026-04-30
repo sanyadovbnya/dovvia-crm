@@ -1,4 +1,4 @@
-import { fmtDate, fmtDuration, callDuration, isBooked, getCallerName, callOutputs } from '../utils/formatters'
+import { fmtDate, fmtDuration, callDuration, isBooked, isWaiting, getCallerName, callOutputs } from '../utils/formatters'
 import { EndReasonBadge } from './Badges'
 import { Icons } from './Icons'
 
@@ -13,6 +13,7 @@ export default function CallRow({ call, active, onClick }) {
   const differ = spoken && callerId && digits(spoken) !== digits(callerId)
   const duration = callDuration(call)
   const booked = isBooked(call)
+  const waiting = isWaiting(call)
 
   return (
     <button
@@ -29,6 +30,7 @@ export default function CallRow({ call, active, onClick }) {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-ink-strong dark:text-slate-100 text-sm truncate">{name}</span>
             {booked && <span className="badge badge-green">Booked</span>}
+            {waiting && <span className="badge badge-yellow">Waiting</span>}
           </div>
           <p className="text-xs text-ink-muted dark:text-slate-400 mt-0.5 truncate">
             {phoneShown && phoneShown !== name ? phoneShown : fmtDate(call.createdAt)}
