@@ -2,19 +2,11 @@ import { useState } from 'react'
 import { LEAD_STATUSES, resolveLead, updateLead, aiParseLeadBooking } from '../utils/leads'
 import { supabase } from '../lib/supabase'
 import { getSession } from '../utils/auth'
-import { parseAmountToCents, fmtCents } from '../utils/resolutions'
+import {
+  OUTCOME_ACTIVE_BTN_CLASS,
+  parseAmountToCents, fmtCents, dollarsFromCents,
+} from '../utils/resolutions'
 import { Icons } from './Icons'
-
-const ACTIVE_BTN = {
-  didnt_work_out: 'bg-red-500 text-white border-transparent shadow-sm',
-  booked:         'bg-emerald-500 text-white border-transparent shadow-sm',
-  done:           'bg-blue-500 text-white border-transparent shadow-sm',
-}
-
-function dollarsFromCents(cents) {
-  if (cents === null || cents === undefined) return ''
-  return String(cents / 100)
-}
 
 // Pulls the time portion out of "HH:MM:SS" appointment value back to the
 // HH:MM string the <input type="time"> control wants.
@@ -185,7 +177,7 @@ export default function LeadResolutionForm({ lead, appointment, onSaved }) {
                 key={key}
                 onClick={() => setOutcome(key)}
                 className={`rounded-xl px-3 py-2.5 text-xs font-semibold transition border ${active
-                  ? ACTIVE_BTN[key]
+                  ? OUTCOME_ACTIVE_BTN_CLASS[key]
                   : 'bg-white dark:bg-slate-900 text-ink-strong dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
               >
                 {label}

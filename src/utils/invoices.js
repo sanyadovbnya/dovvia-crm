@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { getSession } from './auth'
+import { callEdgeFunction } from './edgeFunctions'
 
 export function fmtUSD(n) {
   if (n === null || n === undefined || Number.isNaN(Number(n))) return '$0.00'
@@ -189,25 +190,15 @@ export function buildAIContextFromCall(call, outputs, resolution) {
   return lines.join('\n')
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-// Send free-form notes (any language) to the parse-invoice edge function and
-// get back a structured invoice draft.
+/**
+ * Sends free-form notes (English or Russian) to the parse-invoice edge
+ * function and returns a structured invoice draft.
+ *
+ * @param {string} text  Notes from the operator.
+ * @returns {Promise<object>} Invoice draft with customer_*, line_items, etc.
+ */
 export async function aiParseInvoice(text) {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/parse-invoice`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      apikey: SUPABASE_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ text }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok || !data.ok) {
-    throw new Error(data?.error || `AI parse failed (${res.status})`)
-  }
+  const data = await callEdgeFunction('parse-invoice', { text })
   return data.invoice
 }
 

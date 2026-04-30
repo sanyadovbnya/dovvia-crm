@@ -1,11 +1,13 @@
 import { supabase } from '../lib/supabase'
 import { getSession } from './auth'
+import { OUTCOMES } from './resolutions'
+import { callEdgeFunction, edgeFunctionUrl } from './edgeFunctions'
 
+// Lead status map — same three outcomes as a call resolution plus the
+// initial "waiting" state. Built from OUTCOMES so labels/tones never drift.
 export const LEAD_STATUSES = {
-  waiting:       { label: 'Waiting',          short: 'Waiting', tone: 'yellow' },
-  booked:        { label: 'Booked',           short: 'Booked',  tone: 'green' },
-  done:          { label: 'Done',             short: 'Done',    tone: 'blue' },
-  didnt_work_out:{ label: "Didn't work out",  short: 'Lost',    tone: 'red' },
+  waiting: { label: 'Waiting', short: 'Waiting', tone: 'yellow' },
+  ...OUTCOMES,
 }
 
 export async function fetchLeads() {
@@ -149,25 +151,18 @@ function addTwoHours(hhmm) {
   return `${hh}:${mm}:00`
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-// AI assist for the Booked-outcome form: free-form notes → structured booking.
+/**
+ * Sends free-form callback notes (English or Russian) to parse-lead-booking
+ * and returns structured booking fields (date/time/service/address/etc.).
+ *
+ * @param {string} text  Notes the operator pasted in the AI-Assist box.
+ * @returns {Promise<object>} { date, time_start, booked_for_text, service_type, problem, customer_address, notes }
+ */
 export async function aiParseLeadBooking(text) {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/parse-lead-booking`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      apikey: SUPABASE_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ text }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok || !data.ok) throw new Error(data?.error || `AI parse failed (${res.status})`)
+  const data = await callEdgeFunction('parse-lead-booking', { text })
   return data.booking
 }
 
 export function leadIntakeUrl() {
-  return `${SUPABASE_URL}/functions/v1/intake-lead`
+  return edgeFunctionUrl('intake-lead')
 }

@@ -1,23 +1,10 @@
-// Receives Forminator (or any) webhook submissions and inserts them as a
-// "waiting" lead for the tenant whose lead_intake_secret matches the
-// X-Lead-Secret header.
+// Receives webhook submissions (from the Dovvia WP companion plugin or any
+// other tool) and inserts them as a "waiting" lead for the tenant whose
+// lead_intake_secret matches the X-Lead-Secret header.
 //
 // Deploy: supabase functions deploy intake-lead --no-verify-jwt
-// Required secrets:
-//   SUPABASE_URL                (auto-populated)
-//   SUPABASE_SERVICE_ROLE_KEY   (auto-populated)
-//
-// Forminator → Settings → Integrations → Webhook
-//   URL:     https://<project-ref>.functions.supabase.co/intake-lead
-//   Method:  POST
-//   Headers: X-Lead-Secret: <user's lead_intake_secret>
-//   Body (JSON):
-//     {
-//       "name":   "{name-1}",
-//       "email":  "{email-1}",
-//       "phone":  "{phone-1}",
-//       "details":"{textarea-1}"
-//     }
+// Runtime env (auto-populated by Supabase):
+//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -64,14 +51,14 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors })
   if (req.method !== 'POST') return json({ ok: false, error: 'method not allowed' }, 405)
 
-  const secret = req.headers.get('x-lead-secret')
-  if (!secret) return json({ ok: false, error: 'missing X-Lead-Secret header' }, 401)
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!supabaseUrl || !serviceKey) {
     return json({ ok: false, error: 'server not configured' }, 500)
   }
+
+  const secret = (req.headers.get('x-lead-secret') || '').trim()
+  if (!secret) return json({ ok: false, error: 'missing X-Lead-Secret header' }, 401)
 
   // Service-role client: bypasses RLS so we can resolve tenant by secret and
   // insert the lead row attributed to that user.

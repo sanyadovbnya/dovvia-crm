@@ -1,10 +1,27 @@
 import { supabase } from '../lib/supabase'
 import { getSession } from './auth'
 
+// Canonical resolution outcome map. Used by call resolutions (which only
+// have these three) and by leads (which prepend a 'waiting' state — see
+// LEAD_STATUSES in utils/leads.js). Tone strings map to .badge-* classes.
 export const OUTCOMES = {
   didnt_work_out: { label: "Didn't work out", short: 'Lost',   tone: 'red' },
   booked:         { label: 'Booked',          short: 'Booked', tone: 'green' },
   done:           { label: 'Done',            short: 'Done',   tone: 'blue' },
+}
+
+// Class strings used by the active outcome button across resolution forms.
+// Keyed by outcome key so JIT can statically see every full class name.
+export const OUTCOME_ACTIVE_BTN_CLASS = {
+  didnt_work_out: 'bg-red-500 text-white border-transparent shadow-sm',
+  booked:         'bg-emerald-500 text-white border-transparent shadow-sm',
+  done:           'bg-blue-500 text-white border-transparent shadow-sm',
+}
+
+// Number ↔ display helpers for the amount field on the Done outcome.
+export function dollarsFromCents(cents) {
+  if (cents === null || cents === undefined) return ''
+  return String(cents / 100)
 }
 
 export async function fetchResolutions() {
