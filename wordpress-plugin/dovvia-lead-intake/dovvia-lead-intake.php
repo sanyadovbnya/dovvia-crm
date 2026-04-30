@@ -3,7 +3,7 @@
  * Plugin Name: Dovvia Lead Intake
  * Plugin URI:  https://getdovvia.com
  * Description: Forwards Forminator (or any) form submissions to your Dovvia CRM as a Waiting lead. Sends the shared secret in a custom header so it never appears in the form's webhook URL.
- * Version:     1.4.0
+ * Version:     1.5.0
  * Author:      Dovvia
  * License:     MIT
  * Requires PHP: 7.4
@@ -12,7 +12,7 @@
 if (!defined('ABSPATH')) exit;
 
 define('DOVVIA_LI_OPTION', 'dovvia_lead_intake_settings');
-define('DOVVIA_LI_VERSION', '1.4.0');
+define('DOVVIA_LI_VERSION', '1.5.0');
 
 /* ============================================================
  * Settings model
@@ -47,29 +47,51 @@ function dovvia_li_get_settings() {
  * submission only fires one outbound POST.
  * ============================================================ */
 
-// Most-current first; older / variant names follow.
-add_action('forminator_form_after_save_entry',         'dovvia_li_handle_entry', 10, 3);
-add_action('forminator_custom_form_after_save_entry',  'dovvia_li_handle_entry', 10, 3);
-add_action('forminator_custom_form_submit_after_save', 'dovvia_li_handle_entry', 10, 3);
+// Forminator's submission hook name AND argument signature shift between
+// versions. We register every name we've seen, take args via func_get_args
+// so we don't accidentally drop them, then sniff each arg to find the entry,
+// the field-data-array, and the form id wherever they happen to be.
+add_action('forminator_form_after_save_entry',         'dovvia_li_handle_entry', 10, 5);
+add_action('forminator_custom_form_after_save_entry',  'dovvia_li_handle_entry', 10, 5);
+add_action('forminator_custom_form_submit_after_save', 'dovvia_li_handle_entry', 10, 5);
+add_action('forminator_after_form_submit',             'dovvia_li_handle_entry', 10, 5);
 
-function dovvia_li_handle_entry($form_id, $entry_or_id, $field_data_array = null) {
-    static $forwarded = []; // dedupe by entry_id within the same request
+function dovvia_li_handle_entry() {
+    static $forwarded = [];
+    $args = func_get_args();
+    $sniff = dovvia_li_sniff_args($args);
 
     $settings = dovvia_li_get_settings();
     if (empty($settings['endpoint_url']) || empty($settings['secret'])) return;
-    if (!empty($settings['form_id']) && (string) $settings['form_id'] !== (string) $form_id) return;
+    if (!empty($settings['form_id']) && (string) $settings['form_id'] !== (string) $sniff['form_id']) return;
 
-    // Resolve the entry into either a model object or its id.
-    $entry    = is_object($entry_or_id) ? $entry_or_id : null;
-    $entry_id = $entry && isset($entry->entry_id) ? (int) $entry->entry_id
-              : (is_numeric($entry_or_id) ? (int) $entry_or_id : 0);
+    $entry            = $sniff['entry'];
+    $entry_id         = $sniff['entry_id'];
+    $field_data_array = $sniff['field_data_array'];
+    $form_id          = $sniff['form_id'];
 
     if ($entry_id && isset($forwarded[$entry_id])) return;
     if ($entry_id) $forwarded[$entry_id] = true;
 
-    // If we only got an id, hydrate via Forminator's API when available.
+    // Hydrate the entry from id if we have one but no object.
     if (!$entry && $entry_id && class_exists('Forminator_API')) {
         $entry = Forminator_API::get_entry($form_id, $entry_id);
+    }
+
+    // LAST RESORT: hook fired with only $form_id, no way to identify the
+    // submitted entry. Grab the most-recent entry of this form via the public
+    // API. There's a small race window, but Forminator submissions are
+    // serialized per request so the last entry is the one we just saved.
+    if (!$entry && !$field_data_array && $form_id && class_exists('Forminator_API')) {
+        $recent = Forminator_API::get_entries($form_id, 1, 0);
+        if (is_array($recent) && !empty($recent)) {
+            $entry = is_object($recent[0]) ? $recent[0] : null;
+            if ($entry && isset($entry->entry_id)) {
+                $entry_id = (int) $entry->entry_id;
+                if (isset($forwarded[$entry_id])) return;
+                $forwarded[$entry_id] = true;
+            }
+        }
     }
 
     $values = dovvia_li_extract_values($entry, $field_data_array);
@@ -80,15 +102,54 @@ function dovvia_li_handle_entry($form_id, $entry_or_id, $field_data_array = null
         'details' => $values[$settings['map_details']] ?? '',
     ];
 
-    // If we couldn't pull any value out, capture a snapshot of what we got so
-    // we can fix the extraction without asking the operator for server logs.
     $context = ['event' => 'form_submit', 'form_id' => $form_id, 'entry_id' => $entry_id];
     $all_empty = !array_filter($payload, fn($v) => is_string($v) && $v !== '');
     if ($all_empty) {
-        $context['debug'] = dovvia_li_debug_snapshot($entry, $field_data_array, $values);
+        $context['debug'] = dovvia_li_debug_snapshot($entry, $field_data_array, $values, $args);
     }
 
     dovvia_li_post_to_dovvia($settings, $payload, $context);
+}
+
+/**
+ * Walks every arg the action handed us and labels each one — entry object,
+ * entry id, field-data array, or form id — by shape. Lets us survive
+ * Forminator changing arg order between versions.
+ */
+function dovvia_li_sniff_args(array $args) {
+    $entry = null; $entry_id = 0; $field_data_array = null; $form_id = 0;
+
+    foreach ($args as $a) {
+        if (is_object($a)) {
+            // Forminator's entry model has an entry_id property.
+            if (isset($a->entry_id) && !$entry) $entry = $a;
+            continue;
+        }
+        if (is_array($a)) {
+            // Could be a field_data_array OR a single field item — accept arrays
+            // shaped like [{name, value}, ...].
+            if ($field_data_array === null) {
+                $maybe = $a;
+                $first = reset($maybe);
+                if ((is_array($first) || is_object($first)) || empty($maybe)) {
+                    $field_data_array = $a;
+                }
+            }
+            continue;
+        }
+        if (is_numeric($a)) {
+            // First numeric is the form id; second is the entry id (if no entry obj).
+            $n = (int) $a;
+            if (!$form_id) {
+                $form_id = $n;
+            } elseif (!$entry_id) {
+                $entry_id = $n;
+            }
+        }
+    }
+
+    if ($entry && isset($entry->entry_id) && !$entry_id) $entry_id = (int) $entry->entry_id;
+    return compact('entry', 'entry_id', 'field_data_array', 'form_id');
 }
 
 /**
@@ -126,7 +187,7 @@ function dovvia_li_extract_values($entry, $field_data_array = null) {
  * Dumps the structures we tried so the operator (or the dev) can see exactly
  * what Forminator handed the plugin when extraction failed. Bounded in size.
  */
-function dovvia_li_debug_snapshot($entry, $field_data_array, $values) {
+function dovvia_li_debug_snapshot($entry, $field_data_array, $values, $raw_args = null) {
     $shape = function ($x, $depth = 2) use (&$shape) {
         if ($depth <= 0) return is_scalar($x) ? (string) $x : gettype($x);
         if (is_object($x)) {
@@ -148,6 +209,7 @@ function dovvia_li_debug_snapshot($entry, $field_data_array, $values) {
         return $x;
     };
     return [
+        'raw_args'         => $shape($raw_args),
         'entry'            => $shape($entry),
         'field_data_array' => $shape($field_data_array),
         'extracted_keys'   => array_keys($values ?: []),
