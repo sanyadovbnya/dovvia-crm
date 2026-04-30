@@ -149,24 +149,56 @@ export async function aiParseInvoice(text) {
   return data.invoice
 }
 
-export function buildMailto(invoice, profile) {
-  const businessName = profile?.shop_name || 'Our shop'
-  const subject = `Invoice Attached - ${invoice.serviced_unit || 'Service'}`
+// Variables exposed to the email subject + body templates. Placeholder syntax
+// is {{name}}. Unknown placeholders are left intact so users see typos.
+export function emailTemplateVars(invoice, profile) {
   const firstName = (invoice.customer_name || '').trim().split(/\s+/)[0] || 'there'
-  const dt = new Date(invoice.service_date + 'T00:00').toLocaleDateString('en-US')
-  const lines = [
-    `Hi ${firstName},`,
-    '',
-    `Attached is the invoice for the ${invoice.serviced_unit || 'service'} completed on ${dt}.`,
-    '',
-    'Please let me know if you have any questions.',
-    '',
-    'Thank you,',
-    profile?.invoice_footer ? '' : null,
-    businessName,
-    profile?.business_email || '',
-    profile?.business_website || '',
-  ].filter(l => l !== null).join('\n')
-  const url = `mailto:${invoice.customer_email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`
-  return url
+  const serviceDate = invoice.service_date
+    ? new Date(invoice.service_date + 'T00:00').toLocaleDateString('en-US')
+    : ''
+  return {
+    customer_name:        invoice.customer_name || '',
+    customer_first_name:  firstName,
+    customer_email:       invoice.customer_email || '',
+    customer_phone:       invoice.customer_phone || '',
+    customer_address:     invoice.customer_address || '',
+    invoice_number:       invoice.invoice_number || '',
+    serviced_unit:        invoice.serviced_unit || 'service',
+    service_date:         serviceDate,
+    subtotal:             fmtUSD(invoice.subtotal),
+    tax_amount:           fmtUSD(invoice.tax_amount),
+    total:                fmtUSD(invoice.total),
+    notes:                invoice.notes || '',
+    shop_name:            profile?.shop_name || 'Our shop',
+    business_email:       profile?.business_email || '',
+    business_website:     profile?.business_website || '',
+    business_phone:       profile?.twilio_from_number || '',
+    business_address:     profile?.business_address || '',
+  }
+}
+
+export const EMAIL_TEMPLATE_PLACEHOLDERS = [
+  'customer_first_name', 'customer_name', 'customer_email', 'customer_phone', 'customer_address',
+  'invoice_number', 'serviced_unit', 'service_date', 'subtotal', 'tax_amount', 'total', 'notes',
+  'shop_name', 'business_email', 'business_website', 'business_phone', 'business_address',
+]
+
+export function applyTemplate(template, vars) {
+  return String(template || '').replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key) =>
+    Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] : m
+  )
+}
+
+export function buildGmailCompose(invoice, profile, { subject, body } = {}) {
+  const vars = emailTemplateVars(invoice, profile)
+  const filledSubject = applyTemplate(subject || '', vars)
+  const filledBody = applyTemplate(body || '', vars)
+  const params = new URLSearchParams({
+    view: 'cm',
+    fs: '1',
+    to: invoice.customer_email || '',
+    su: filledSubject,
+    body: filledBody,
+  })
+  return `https://mail.google.com/mail/?${params.toString()}`
 }

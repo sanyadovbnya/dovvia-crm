@@ -10,7 +10,7 @@ export async function loadProfile() {
   if (!s) return null
   const { data, error } = await supabase
     .from('profiles')
-    .select('vapi_key, shop_name, twilio_account_sid, twilio_auth_token, twilio_from_number, business_address, business_email, business_website, business_logo_url, invoice_default_tax_rate, invoice_next_number, invoice_footer, google_review_url')
+    .select('*')
     .eq('id', s.user.id)
     .single()
   if (error?.code === 'PGRST116') {
@@ -22,6 +22,7 @@ export async function loadProfile() {
       invoice_default_tax_rate: null, invoice_next_number: 1001,
       invoice_footer: 'Thank you for your business!',
       google_review_url: '',
+      invoice_email_subject: '', invoice_email_body: '',
     }
   }
   if (error || !data) return null
@@ -53,6 +54,20 @@ export async function loadTwilioConfig() {
   }
 }
 
+export const DEFAULT_INVOICE_EMAIL_SUBJECT = 'Invoice #{{invoice_number}} from {{shop_name}}'
+export const DEFAULT_INVOICE_EMAIL_BODY = `Hi {{customer_first_name}},
+
+Attached is your invoice for the {{serviced_unit}} completed on {{service_date}}.
+
+Total: {{total}}
+
+Please let me know if you have any questions.
+
+Thank you,
+{{shop_name}}
+{{business_email}}
+{{business_website}}`
+
 export async function loadInvoiceConfig() {
   const p = await loadProfile()
   return {
@@ -64,13 +79,15 @@ export async function loadInvoiceConfig() {
     invoice_next_number:      p?.invoice_next_number ?? 1001,
     invoice_footer:           p?.invoice_footer || 'Thank you for your business!',
     google_review_url:        p?.google_review_url || '',
+    invoice_email_subject:    p?.invoice_email_subject || DEFAULT_INVOICE_EMAIL_SUBJECT,
+    invoice_email_body:       p?.invoice_email_body || DEFAULT_INVOICE_EMAIL_BODY,
   }
 }
 
 export async function saveInvoiceConfig(cfg) {
   const s = await session()
   if (!s) throw new Error('Not authenticated')
-  const payload = {
+  const base = {
     business_address:         cfg.business_address || null,
     business_email:           cfg.business_email || null,
     business_website:         cfg.business_website || null,
@@ -82,7 +99,20 @@ export async function saveInvoiceConfig(cfg) {
     google_review_url:        cfg.google_review_url || null,
     updated_at: new Date().toISOString(),
   }
-  const { error } = await supabase.from('profiles').update(payload).eq('id', s.user.id)
+  const withEmail = {
+    ...base,
+    invoice_email_subject: cfg.invoice_email_subject || null,
+    invoice_email_body:    cfg.invoice_email_body || null,
+  }
+  let { error } = await supabase.from('profiles').update(withEmail).eq('id', s.user.id)
+  // If migration 0009 hasn't been applied yet, the email columns don't exist.
+  // Retry without them so the rest of the settings still save.
+  if (error && /invoice_email_/i.test(error.message)) {
+    ({ error } = await supabase.from('profiles').update(base).eq('id', s.user.id))
+    if (!error) {
+      throw new Error('Saved everything except email template — run migration 0009 in Supabase to enable saving the email template.')
+    }
+  }
   if (error) throw new Error(error.message)
 }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { testConnection } from '../api/vapi'
-import { loadTwilioConfig, saveTwilioConfig, loadInvoiceConfig, saveInvoiceConfig } from '../utils/profile'
+import { loadTwilioConfig, saveTwilioConfig, loadInvoiceConfig, saveInvoiceConfig, DEFAULT_INVOICE_EMAIL_SUBJECT, DEFAULT_INVOICE_EMAIL_BODY } from '../utils/profile'
+import { EMAIL_TEMPLATE_PLACEHOLDERS } from '../utils/invoices'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 
@@ -53,6 +54,8 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
     invoice_next_number: 1001,
     invoice_footer: 'Thank you for your business!',
     google_review_url: '',
+    invoice_email_subject: DEFAULT_INVOICE_EMAIL_SUBJECT,
+    invoice_email_body: DEFAULT_INVOICE_EMAIL_BODY,
   })
   const [invSaving, setInvSaving] = useState(false)
   const [invErr, setInvErr] = useState('')
@@ -294,6 +297,47 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
                 onChange={setI('google_review_url')}
               />
               <p className="mt-1 text-xs text-ink-muted dark:text-slate-400">Customers who rate 4–5 stars get redirected here. Leave blank to keep all reviews in-house.</p>
+            </div>
+
+            <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800">
+              <h4 className="text-sm font-bold text-ink-strong dark:text-slate-100 mb-1">Email customer template</h4>
+              <p className="text-xs text-ink-muted dark:text-slate-400 mb-3">
+                Used when you click <span className="font-semibold">Email customer</span> on an invoice. Opens Gmail compose in a new tab with the customer&apos;s email, subject, and body pre-filled. Use <span className="font-mono">{'{{placeholders}}'}</span> below to insert invoice and customer data.
+              </p>
+            </div>
+            <div>
+              <Label>Email subject</Label>
+              <input
+                placeholder={DEFAULT_INVOICE_EMAIL_SUBJECT}
+                value={inv.invoice_email_subject}
+                onChange={setI('invoice_email_subject')}
+              />
+            </div>
+            <div>
+              <Label>Email body</Label>
+              <textarea
+                rows={9}
+                placeholder={DEFAULT_INVOICE_EMAIL_BODY}
+                value={inv.invoice_email_body}
+                onChange={setI('invoice_email_body')}
+                className="font-mono text-xs"
+              />
+              <div className="mt-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-1.5">Available placeholders</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {EMAIL_TEMPLATE_PLACEHOLDERS.map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setInv(i => ({ ...i, invoice_email_body: (i.invoice_email_body || '') + `{{${p}}}` }))}
+                      className="text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-ink-strong dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 px-2 py-1 rounded"
+                      title={`Click to append {{${p}}} to body`}
+                    >
+                      {`{{${p}}}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

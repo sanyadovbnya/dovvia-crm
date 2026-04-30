@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
   fetchInvoices, createInvoice, updateInvoice, markSent, markPaid, deleteInvoice,
-  fmtUSD, recompute, buildMailto, aiParseInvoice,
+  fmtUSD, recompute, buildGmailCompose, aiParseInvoice,
 } from '../utils/invoices'
+import { DEFAULT_INVOICE_EMAIL_SUBJECT, DEFAULT_INVOICE_EMAIL_BODY } from '../utils/profile'
 import { loadProfile } from '../utils/profile'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
@@ -317,7 +318,7 @@ function InvoiceDetail({ invoice, profile, onClose, onEdit, onPrint, onMarkSent,
 
       <div className="grid grid-cols-2 gap-2 mb-2">
         <button onClick={onPrint} className="btn-ghost"><Icons.Calendar /> Print / PDF</button>
-        <button onClick={onEmail} className="btn-ghost" disabled={!invoice.customer_email} title={invoice.customer_email ? 'Open mail client' : 'Add a customer email to enable'}>
+        <button onClick={onEmail} className="btn-ghost" disabled={!invoice.customer_email} title={invoice.customer_email ? 'Open Gmail compose in a new tab' : 'Add a customer email to enable'}>
           <Icons.User /> Email customer
         </button>
         <button onClick={onEdit} className="btn-ghost"><Icons.Settings /> Edit</button>
@@ -392,7 +393,11 @@ export default function Invoices() {
 
   function handleEmail(inv) {
     if (!inv.customer_email) { setError('Add a customer email to email this invoice.'); return }
-    window.location.href = buildMailto(inv, profile)
+    const url = buildGmailCompose(inv, profile, {
+      subject: profile?.invoice_email_subject || DEFAULT_INVOICE_EMAIL_SUBJECT,
+      body:    profile?.invoice_email_body    || DEFAULT_INVOICE_EMAIL_BODY,
+    })
+    window.open(url, '_blank', 'noopener,noreferrer')
     if (inv.status === 'draft') {
       markSent(inv.id).then(reload).catch(() => {})
     }
