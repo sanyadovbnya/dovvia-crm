@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchAppointments, createAppointment, cancelAppointment, rescheduleAppointment } from '../utils/appointments'
+import { fmtTime } from '../utils/formatters'
 import { AppointmentForm, AppointmentDetail, Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 
@@ -36,13 +37,6 @@ function getWeekDays(date) {
 
 function toDateStr(d) {
   return d.toISOString().split('T')[0]
-}
-
-function fmtTime(t) {
-  if (!t) return ''
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
 function timeToRow(t) {

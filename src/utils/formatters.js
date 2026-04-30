@@ -18,6 +18,14 @@ export function fmtDuration(secs) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+// Formats a 24-hour HH:MM string as "h:mm AM/PM".
+export function fmtTime(t) {
+  if (!t) return ''
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 export function callDuration(call) {
   if (!call.endedAt || !call.startedAt) return null
   return (new Date(call.endedAt) - new Date(call.startedAt)) / 1000

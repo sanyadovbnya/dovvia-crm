@@ -1,12 +1,8 @@
 import { supabase } from '../lib/supabase'
-
-async function session() {
-  const { data: { session: s } } = await supabase.auth.getSession()
-  return s
-}
+import { getSession } from './auth'
 
 export async function loadProfile() {
-  const s = await session()
+  const s = await getSession()
   if (!s) return null
   const { data, error } = await supabase
     .from('profiles')
@@ -14,7 +10,9 @@ export async function loadProfile() {
     .eq('id', s.user.id)
     .single()
   if (error?.code === 'PGRST116') {
-    await supabase.from('profiles').insert({ id: s.user.id })
+    const { error: insertErr } = await supabase.from('profiles').insert({ id: s.user.id })
+    // Ignore unique-violation: a row inserted by a concurrent call is fine.
+    if (insertErr && insertErr.code !== '23505') throw new Error(insertErr.message)
     return {
       vapi_key: '', shop_name: '',
       twilio_account_sid: '', twilio_auth_token: '', twilio_from_number: '',
@@ -35,7 +33,7 @@ export async function loadVapiKey() {
 }
 
 export async function saveVapiKey(key) {
-  const s = await session()
+  const s = await getSession()
   if (!s) throw new Error('Not authenticated')
   const { error } = await supabase
     .from('profiles')
@@ -85,7 +83,7 @@ export async function loadInvoiceConfig() {
 }
 
 export async function saveInvoiceConfig(cfg) {
-  const s = await session()
+  const s = await getSession()
   if (!s) throw new Error('Not authenticated')
   const base = {
     business_address:         cfg.business_address || null,
@@ -120,7 +118,7 @@ export async function saveInvoiceConfig(cfg) {
 // twilio_auth_token is only updated if provided (non-empty); otherwise the existing
 // stored token is kept, so the user doesn't need to re-enter it every edit.
 export async function saveTwilioConfig(cfg) {
-  const s = await session()
+  const s = await getSession()
   if (!s) throw new Error('Not authenticated')
   const payload = {
     shop_name: cfg.shop_name || null,

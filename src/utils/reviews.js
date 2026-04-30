@@ -1,12 +1,8 @@
 import { supabase } from '../lib/supabase'
-
-async function session() {
-  const { data: { session: s } } = await supabase.auth.getSession()
-  return s
-}
+import { getSession } from './auth'
 
 export async function fetchReviews() {
-  const s = await session()
+  const s = await getSession()
   if (!s) return []
   const { data, error } = await supabase
     .from('reviews')

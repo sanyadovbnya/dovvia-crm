@@ -1,16 +1,7 @@
 import { supabase } from '../lib/supabase'
+import { phoneDigits } from './phone'
 
-export function phoneDigits(raw) {
-  if (typeof raw !== 'string') return null
-  const d = raw.replace(/\D/g, '')
-  return d.length >= 10 ? d.slice(-10) : null
-}
-
-export function fmtPhone(raw) {
-  const d = phoneDigits(raw)
-  if (!d) return raw || '—'
-  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
-}
+export { phoneDigits, fmtPhone } from './phone'
 
 export async function fetchAllAppointments() {
   const { data: { session } } = await supabase.auth.getSession()
