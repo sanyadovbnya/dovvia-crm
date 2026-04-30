@@ -3,6 +3,9 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { fetchCalls } from './api/vapi'
 import { fmtDuration, callDuration, isBooked, callOutputs } from './utils/formatters'
 import { upsertAppointmentsFromCalls } from './utils/appointments'
+import { fetchAllAppointments, groupIntoCustomers } from './utils/customers'
+import { fetchInvoices, fmtUSD } from './utils/invoices'
+import { fetchReviews, reviewStats } from './utils/reviews'
 import { getSession, onAuthChange, logout } from './utils/auth'
 import { loadVapiKey, saveVapiKey } from './utils/profile'
 import LoginScreen from './components/LoginScreen'
@@ -32,6 +35,9 @@ function Dashboard({ session, onLogout }) {
   const [search, setSearch] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [tab, setTab] = useState('calls')
+  const [appointments, setAppointments] = useState([])
+  const [invoices, setInvoices] = useState([])
+  const [reviews, setReviews] = useState([])
 
   const userMeta = session?.user?.user_metadata || {}
   const company = userMeta.company
@@ -60,6 +66,19 @@ function Dashboard({ session, onLogout }) {
 
   useEffect(() => { loadCalls() }, [loadCalls])
 
+  useEffect(() => {
+    if (!apiKey) return
+    if (tab === 'schedule' || tab === 'customers') {
+      fetchAllAppointments().then(setAppointments).catch(() => {})
+    }
+    if (tab === 'invoices') {
+      fetchInvoices().then(setInvoices).catch(() => {})
+    }
+    if (tab === 'reviews') {
+      fetchReviews().then(setReviews).catch(() => {})
+    }
+  }, [apiKey, tab])
+
   async function handleSaveKey(key) {
     await saveVapiKey(key)
     setApiKey(key)
@@ -77,12 +96,86 @@ function Dashboard({ session, onLogout }) {
   if (!apiKey) return <SetupScreen onSave={handleSaveKey} />
 
   const today = new Date(); today.setHours(0, 0, 0, 0)
+  const todayStr = today.toISOString().slice(0, 10)
+  const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + 7)
+  const weekEndStr = weekEnd.toISOString().slice(0, 10)
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+  const monthStartStr = monthStart.toISOString().slice(0, 10)
+
   const todayCalls = calls.filter(c => new Date(c.createdAt) >= today)
   const bookedCalls = calls.filter(isBooked)
   const durations = calls.map(callDuration).filter(d => d !== null)
   const avgDuration = durations.length
     ? durations.reduce((a, b) => a + b, 0) / durations.length
     : 0
+
+  // Per-tab stat cards
+  const callsCards = (
+    <>
+      <StatCard label="Total Calls"   value={calls.length}              sub="all time"     tone="lavender" icon={<Icons.Phone />} />
+      <StatCard label="Today"         value={todayCalls.length}         sub="calls today"  tone="sky"      icon={<Icons.Microphone />} />
+      <StatCard label="Appointments"  value={bookedCalls.length}        sub="booked total" tone="mint"     icon={<Icons.Calendar />} />
+      <StatCard label="Avg Duration"  value={fmtDuration(avgDuration)}  sub="per call"     tone="peach"    icon={<Icons.Clock />} />
+    </>
+  )
+
+  const activeAppts = appointments.filter(a => a.status !== 'cancelled')
+  const todayAppts = activeAppts.filter(a => a.date === todayStr)
+  const weekAppts = activeAppts.filter(a => a.date >= todayStr && a.date < weekEndStr)
+  const upcomingAppts = activeAppts.filter(a => a.date >= todayStr)
+  const scheduleCards = (
+    <>
+      <StatCard label="Total Appts"   value={activeAppts.length}    sub="all time"   tone="lavender" icon={<Icons.Calendar />} />
+      <StatCard label="Today"         value={todayAppts.length}     sub="scheduled"  tone="sky"      icon={<Icons.Clock />} />
+      <StatCard label="This Week"     value={weekAppts.length}      sub="next 7 days" tone="mint"    icon={<Icons.Calendar />} />
+      <StatCard label="Upcoming"      value={upcomingAppts.length}  sub="future"     tone="peach"    icon={<Icons.ChevronRight />} />
+    </>
+  )
+
+  const customers = groupIntoCustomers(appointments)
+  const newCustomers = customers.filter(c => c.firstDate >= monthStartStr)
+  const customersWithUpcoming = customers.filter(c => c.upcoming > 0)
+  const totalVisits = customers.reduce((s, c) => s + c.total, 0)
+  const avgVisits = customers.length ? (totalVisits / customers.length).toFixed(1) : '0.0'
+  const customersCards = (
+    <>
+      <StatCard label="Total Customers"  value={customers.length}             sub="all time"     tone="lavender" icon={<Icons.User />} />
+      <StatCard label="New This Month"   value={newCustomers.length}          sub="first visit"  tone="sky"      icon={<Icons.User />} />
+      <StatCard label="With Upcoming"    value={customersWithUpcoming.length} sub="have appts"   tone="mint"     icon={<Icons.Calendar />} />
+      <StatCard label="Avg Visits"       value={avgVisits}                    sub="per customer" tone="peach"    icon={<Icons.BarChart />} />
+    </>
+  )
+
+  const monthInvoices = invoices.filter(i => (i.created_at || '').slice(0, 10) >= monthStartStr)
+  const totalRevenue = invoices.reduce((s, i) => s + (Number(i.total) || 0), 0)
+  const avgInvoice = invoices.length ? totalRevenue / invoices.length : 0
+  const invoicesCards = (
+    <>
+      <StatCard label="Total Invoices"  value={invoices.length}        sub="all time"   tone="lavender" icon={<Icons.Receipt />} />
+      <StatCard label="This Month"      value={monthInvoices.length}   sub="created"    tone="sky"      icon={<Icons.Receipt />} />
+      <StatCard label="Total Revenue"   value={fmtUSD(totalRevenue)}   sub="invoiced"   tone="mint"     icon={<Icons.BarChart />} />
+      <StatCard label="Avg Invoice"     value={fmtUSD(avgInvoice)}     sub="per invoice" tone="peach"   icon={<Icons.BarChart />} />
+    </>
+  )
+
+  const rStats = reviewStats(reviews)
+  const fiveStarCount = rStats.breakdown.find(b => b.stars === 5)?.count || 0
+  const reviewsCards = (
+    <>
+      <StatCard label="Total Reviews"   value={rStats.total}                    sub="submitted"   tone="lavender" icon={<Icons.Star />} />
+      <StatCard label="Avg Rating"      value={rStats.total ? rStats.avg.toFixed(1) : '—'} sub="out of 5" tone="sky" icon={<Icons.Star filled />} />
+      <StatCard label="5-Star"          value={fiveStarCount}                   sub="reviews"     tone="mint"     icon={<Icons.Star filled />} />
+      <StatCard label="Requests Sent"   value={rStats.sentTotal}                sub={`${rStats.responseRate}% response`} tone="peach" icon={<Icons.Phone />} />
+    </>
+  )
+
+  const statCards =
+    tab === 'schedule'  ? scheduleCards
+    : tab === 'customers' ? customersCards
+    : tab === 'invoices'  ? invoicesCards
+    : tab === 'reviews'   ? reviewsCards
+    : tab === 'stats'     ? null
+    : callsCards
 
   const filtered = search.trim()
     ? calls.filter(c => {
@@ -117,13 +210,11 @@ function Dashboard({ session, onLogout }) {
         />
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard label="Total Calls"   value={calls.length}        sub="all time"    tone="lavender" icon={<Icons.Phone />} />
-        <StatCard label="Today"         value={todayCalls.length}   sub="calls today" tone="sky"      icon={<Icons.Microphone />} />
-        <StatCard label="Appointments"  value={bookedCalls.length}  sub="booked total" tone="mint"    icon={<Icons.Calendar />} />
-        <StatCard label="Avg Duration"  value={fmtDuration(avgDuration)} sub="per call" tone="peach"  icon={<Icons.Clock />} />
-      </div>
+      {statCards && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {statCards}
+        </div>
+      )}
 
       {tab === 'calls' && (
         <section className="mt-6">
