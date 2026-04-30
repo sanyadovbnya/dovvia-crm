@@ -4,6 +4,10 @@
 
 @layer base {
   html, body, #root { @apply min-h-screen; }
+  /* Belt-and-suspenders horizontal-overflow guard. A single misbehaving child
+     (long URL in a copy field, wide modal, etc.) would otherwise force the
+     <body> to scroll sideways, making the whole page look broken on mobile. */
+  html, body { @apply overflow-x-hidden; }
   body {
     @apply bg-surface-page text-ink-base font-sans antialiased
            dark:bg-slate-950 dark:text-slate-300;

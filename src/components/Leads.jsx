@@ -99,9 +99,9 @@ function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
           {/* Contact */}
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-2">Contact</p>
-            <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-1.5 text-sm">
+            <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-1.5 text-sm break-words">
               {lead.name  && <div><span className="text-ink-muted dark:text-slate-400 mr-2">Name</span><span className="text-ink-strong dark:text-slate-100">{lead.name}</span></div>}
-              {lead.email && <div><span className="text-ink-muted dark:text-slate-400 mr-2">Email</span><a href={`mailto:${lead.email}`} className="text-brand-600 dark:text-brand-400 hover:underline">{lead.email}</a></div>}
+              {lead.email && <div><span className="text-ink-muted dark:text-slate-400 mr-2">Email</span><a href={`mailto:${lead.email}`} className="text-brand-600 dark:text-brand-400 hover:underline break-all">{lead.email}</a></div>}
               {lead.phone && <div><span className="text-ink-muted dark:text-slate-400 mr-2">Phone</span><a href={`tel:${lead.phone}`} className="text-brand-600 dark:text-brand-400 hover:underline">{fmtPhone(lead.phone)}</a></div>}
               {lead.source && <div><span className="text-ink-muted dark:text-slate-400 mr-2">Source</span><span className="text-ink-strong dark:text-slate-100 capitalize">{lead.source}</span></div>}
             </div>
@@ -112,7 +112,7 @@ function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-2">Details</p>
               <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3">
-                <p className="text-sm text-ink-strong dark:text-slate-200 whitespace-pre-wrap">{lead.details}</p>
+                <p className="text-sm text-ink-strong dark:text-slate-200 whitespace-pre-wrap break-words">{lead.details}</p>
               </div>
             </div>
           )}
@@ -161,7 +161,7 @@ function NewLeadModal({ onSaved, onClose }) {
           <label className="text-xs text-ink-muted dark:text-slate-400">Name</label>
           <input value={form.name} onChange={set('name')} placeholder="Full name" className="mt-1" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-ink-muted dark:text-slate-400">Email</label>
             <input type="email" value={form.email} onChange={set('email')} className="mt-1" />
