@@ -213,7 +213,7 @@ export async function aiParseInvoice(text) {
 
 // Variables exposed to the email subject + body templates. Placeholder syntax
 // is {{name}}. Unknown placeholders are left intact so users see typos.
-export function emailTemplateVars(invoice, profile) {
+export function emailTemplateVars(invoice, profile, { pdfUrl } = {}) {
   const firstName = (invoice.customer_name || '').trim().split(/\s+/)[0] || 'there'
   const serviceDate = invoice.service_date
     ? new Date(invoice.service_date + 'T00:00').toLocaleDateString('en-US')
@@ -225,6 +225,7 @@ export function emailTemplateVars(invoice, profile) {
     customer_phone:       invoice.customer_phone || '',
     customer_address:     invoice.customer_address || '',
     invoice_number:       invoice.invoice_number || '',
+    invoice_pdf_url:      pdfUrl || '',
     serviced_unit:        invoice.serviced_unit || 'service',
     service_date:         serviceDate,
     subtotal:             fmtUSD(invoice.subtotal),
@@ -241,7 +242,8 @@ export function emailTemplateVars(invoice, profile) {
 
 export const EMAIL_TEMPLATE_PLACEHOLDERS = [
   'customer_first_name', 'customer_name', 'customer_email', 'customer_phone', 'customer_address',
-  'invoice_number', 'serviced_unit', 'service_date', 'subtotal', 'tax_amount', 'total', 'notes',
+  'invoice_number', 'invoice_pdf_url', 'serviced_unit', 'service_date',
+  'subtotal', 'tax_amount', 'total', 'notes',
   'shop_name', 'business_email', 'business_website', 'business_phone', 'business_address',
 ]
 
@@ -251,16 +253,79 @@ export function applyTemplate(template, vars) {
   )
 }
 
-export function buildGmailCompose(invoice, profile, { subject, body } = {}) {
-  const vars = emailTemplateVars(invoice, profile)
+// Picks the right URL scheme so the customer's "Email customer" tap lands in
+// their email composer of choice:
+//   - iOS:     googlegmail:// (opens Gmail app if installed)
+//   - Android: mailto:        (Gmail handles it as the default)
+//   - Desktop: Gmail web compose
+function platform() {
+  if (typeof navigator === 'undefined') return 'desktop'
+  const ua = navigator.userAgent || ''
+  if (/iPhone|iPad|iPod/.test(ua)) return 'ios'
+  if (/Android/.test(ua)) return 'android'
+  return 'desktop'
+}
+
+export function buildEmailComposeUrl({ to, subject, body }) {
+  const t = to || ''
+  const su = subject || ''
+  const b = body || ''
+  switch (platform()) {
+    case 'ios':
+      return `googlegmail://co?to=${encodeURIComponent(t)}`
+        + `&subject=${encodeURIComponent(su)}`
+        + `&body=${encodeURIComponent(b)}`
+    case 'android':
+      return `mailto:${encodeURIComponent(t)}`
+        + `?subject=${encodeURIComponent(su)}`
+        + `&body=${encodeURIComponent(b)}`
+    default: {
+      const params = new URLSearchParams({ view: 'cm', fs: '1', to: t, su, body: b })
+      return `https://mail.google.com/mail/?${params.toString()}`
+    }
+  }
+}
+
+// If the user's body template doesn't reference {{invoice_pdf_url}} explicitly,
+// append a one-liner so the link is never silently dropped.
+function ensurePdfLinkInBody(body, pdfUrl) {
+  if (!pdfUrl) return body
+  if (/\{\{\s*invoice_pdf_url\s*\}\}/.test(body)) return body
+  if (body.includes(pdfUrl)) return body
+  const sep = body.endsWith('\n') ? '\n' : '\n\n'
+  return `${body}${sep}View your invoice: ${pdfUrl}`
+}
+
+export function buildGmailCompose(invoice, profile, { subject, body, pdfUrl } = {}) {
+  const vars = emailTemplateVars(invoice, profile, { pdfUrl })
   const filledSubject = applyTemplate(subject || '', vars)
-  const filledBody = applyTemplate(body || '', vars)
-  const params = new URLSearchParams({
-    view: 'cm',
-    fs: '1',
-    to: invoice.customer_email || '',
-    su: filledSubject,
+  const filledBody = ensurePdfLinkInBody(applyTemplate(body || '', vars), pdfUrl)
+  return buildEmailComposeUrl({
+    to: invoice.customer_email,
+    subject: filledSubject,
     body: filledBody,
   })
-  return `https://mail.google.com/mail/?${params.toString()}`
+}
+
+// Uploads a generated invoice PDF to the per-user Storage folder and returns
+// a 30-day signed URL safe to drop into an email body.
+//
+// Path layout: <user_id>/<invoice_number>-<unix_ms>.pdf
+// (timestamp suffix lets the same invoice be re-emailed without overwrite races)
+export async function uploadInvoicePdf(invoice, blob) {
+  const s = await getSession()
+  if (!s) throw new Error('Not authenticated')
+  const path = `${s.user.id}/${invoice.invoice_number}-${Date.now()}.pdf`
+  const { error: uploadErr } = await supabase
+    .storage
+    .from('invoice-pdfs')
+    .upload(path, blob, { contentType: 'application/pdf', upsert: false })
+  if (uploadErr) throw new Error(uploadErr.message)
+
+  const { data, error: urlErr } = await supabase
+    .storage
+    .from('invoice-pdfs')
+    .createSignedUrl(path, 60 * 60 * 24 * 30) // 30 days
+  if (urlErr) throw new Error(urlErr.message)
+  return data.signedUrl
 }

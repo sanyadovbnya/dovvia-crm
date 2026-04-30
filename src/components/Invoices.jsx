@@ -1,13 +1,15 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
   fetchInvoices, createInvoice, updateInvoice, markSent, markPaid, deleteInvoice,
-  fmtUSD, recompute, buildGmailCompose, aiParseInvoice,
+  fmtUSD, recompute, buildGmailCompose, aiParseInvoice, uploadInvoicePdf,
 } from '../utils/invoices'
+import { renderElementToPdfBlob } from '../utils/invoicePdf'
 import { DEFAULT_INVOICE_EMAIL_SUBJECT, DEFAULT_INVOICE_EMAIL_BODY } from '../utils/profile'
 import { loadProfile } from '../utils/profile'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 import InvoicePrintView from './InvoicePrintView'
+import InvoiceSheet from './InvoiceSheet'
 
 const STATUS_TONE = {
   draft: 'bg-slate-100       text-ink-muted        dark:bg-slate-800       dark:text-slate-400',
@@ -263,7 +265,7 @@ function InvoiceForm({ initial, profile, onSave, onClose, saving }) {
   )
 }
 
-function InvoiceDetail({ invoice, profile, onClose, onEdit, onPrint, onMarkSent, onMarkPaid, onDelete, onEmail, busy }) {
+function InvoiceDetail({ invoice, profile, onClose, onEdit, onPrint, onMarkSent, onMarkPaid, onDelete, onEmail, busy, emailing }) {
   return (
     <>
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -318,8 +320,13 @@ function InvoiceDetail({ invoice, profile, onClose, onEdit, onPrint, onMarkSent,
 
       <div className="grid grid-cols-2 gap-2 mb-2">
         <button onClick={onPrint} className="btn-ghost"><Icons.Calendar /> Print / PDF</button>
-        <button onClick={onEmail} className="btn-ghost" disabled={!invoice.customer_email} title={invoice.customer_email ? 'Open Gmail compose in a new tab' : 'Add a customer email to enable'}>
-          <Icons.User /> Email customer
+        <button
+          onClick={onEmail}
+          className="btn-ghost"
+          disabled={!invoice.customer_email || emailing}
+          title={invoice.customer_email ? 'Generate PDF and open email composer' : 'Add a customer email to enable'}
+        >
+          {emailing ? <><Icons.Spinner /> Preparing PDF…</> : <><Icons.User /> Email customer</>}
         </button>
         <button onClick={onEdit} className="btn-ghost"><Icons.Settings /> Edit</button>
         <button onClick={onDelete} className="btn-ghost hover:text-pastel-coralDeep dark:hover:text-red-300">Delete</button>
@@ -352,6 +359,7 @@ export default function Invoices({ initialDraft, onConsumeDraft }) {
   const [modal, setModal] = useState(null) // { type: 'new' | 'edit' | 'detail', invoice? }
   const [printing, setPrinting] = useState(null) // invoice
   const [saving, setSaving] = useState(false)
+  const [emailingId, setEmailingId] = useState(null) // invoice id currently being prepared for email
 
   async function reload() {
     try {
@@ -398,16 +406,34 @@ export default function Invoices({ initialDraft, onConsumeDraft }) {
     catch (e) { setError(e.message) }
   }
 
-  function handleEmail(inv) {
+  // Email flow:
+  //   1. Render invoice to PDF blob (off-screen)
+  //   2. Upload to per-user Storage folder, get a 30-day signed URL
+  //   3. Build a compose URL with the signed link in the body
+  //   4. Open the email client (Gmail web on desktop, Gmail app on iOS, mailto on Android)
+  //
+  // If PDF generation or upload fails, fall back to opening email without
+  // the link rather than blocking the user.
+  async function handleEmail(inv) {
     if (!inv.customer_email) { setError('Add a customer email to email this invoice.'); return }
+    setEmailingId(inv.id); setError('')
+    let pdfUrl
+    try {
+      const blob = await renderElementToPdfBlob(<InvoiceSheet invoice={inv} profile={profile} />)
+      pdfUrl = await uploadInvoicePdf(inv, blob)
+    } catch (e) {
+      console.warn('[invoice email] PDF generation/upload failed; sending email without link:', e?.message)
+    }
     const url = buildGmailCompose(inv, profile, {
       subject: profile?.invoice_email_subject || DEFAULT_INVOICE_EMAIL_SUBJECT,
       body:    profile?.invoice_email_body    || DEFAULT_INVOICE_EMAIL_BODY,
+      pdfUrl,
     })
     window.open(url, '_blank', 'noopener,noreferrer')
     if (inv.status === 'draft') {
       markSent(inv.id).then(reload).catch(() => {})
     }
+    setEmailingId(null)
   }
 
   const filtered = useMemo(() => {
@@ -523,6 +549,7 @@ export default function Invoices({ initialDraft, onConsumeDraft }) {
             onEdit={() => setModal({ type: 'edit', invoice: modal.invoice })}
             onPrint={() => setPrinting(modal.invoice)}
             onEmail={() => handleEmail(modal.invoice)}
+            emailing={emailingId === modal.invoice.id}
             onMarkSent={() => markSent(modal.invoice.id).then(reload)}
             onMarkPaid={() => markPaid(modal.invoice.id).then(reload)}
             onDelete={() => handleDelete(modal.invoice.id)}

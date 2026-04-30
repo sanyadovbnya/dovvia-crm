@@ -55,7 +55,9 @@ export async function loadTwilioConfig() {
 export const DEFAULT_INVOICE_EMAIL_SUBJECT = 'Invoice #{{invoice_number}} from {{shop_name}}'
 export const DEFAULT_INVOICE_EMAIL_BODY = `Hi {{customer_first_name}},
 
-Attached is your invoice for the {{serviced_unit}} completed on {{service_date}}.
+Here's your invoice for the {{serviced_unit}} completed on {{service_date}}.
+
+View / download: {{invoice_pdf_url}}
 
 Total: {{total}}
 
