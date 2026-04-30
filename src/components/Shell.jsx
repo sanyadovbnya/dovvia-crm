@@ -1,5 +1,33 @@
+import { useState } from 'react'
 import { Icons } from './Icons'
 import { useTheme } from '../utils/theme'
+
+// Daily-use views — shown directly on the mobile bottom nav.
+const PRIMARY_NAV = [
+  { key: 'calls',     label: 'Calls',     icon: <Icons.Phone /> },
+  { key: 'leads',     label: 'Leads',     icon: <Icons.Inbox /> },
+  { key: 'schedule',  label: 'Schedule',  icon: <Icons.Calendar /> },
+  { key: 'customers', label: 'Customers', icon: <Icons.User /> },
+]
+
+// Less-frequent views — collapsed behind a "More" button on mobile.
+const SECONDARY_NAV = [
+  { key: 'invoices',  label: 'Invoices',  icon: <Icons.Receipt /> },
+  { key: 'reviews',   label: 'Reviews',   icon: <Icons.Star /> },
+  { key: 'stats',     label: 'Stats',     icon: <Icons.BarChart /> },
+]
+
+const ALL_NAV = [...PRIMARY_NAV, ...SECONDARY_NAV]
+
+const TAB_SUBTITLE = {
+  calls:     'All inbound calls to your AI receptionist',
+  leads:     'Web form submissions waiting for a response',
+  schedule:  'Upcoming and past appointments',
+  customers: 'Everyone who has booked through Dovvia',
+  invoices:  'Bill customers after a completed job',
+  reviews:   'Customer feedback and ratings',
+  stats:     'Performance and trends',
+}
 
 function NavItem({ label, icon, active, onClick, variant = 'side' }) {
   if (variant === 'bottom') {
@@ -24,6 +52,27 @@ function NavItem({ label, icon, active, onClick, variant = 'side' }) {
   )
 }
 
+// Mobile overflow menu — opens from the More button on the bottom nav.
+function MoreSheet({ tab, setTab, onClose }) {
+  function pick(key) { setTab(key); onClose() }
+  return (
+    <>
+      <div onClick={onClose} className="lg:hidden fixed inset-0 z-40 bg-slate-900/30 dark:bg-black/60 backdrop-blur-sm" />
+      <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 rounded-t-2xl shadow-pop slide-in pb-safe">
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+          <p className="text-sm font-bold text-ink-strong dark:text-slate-100">More</p>
+          <button onClick={onClose} className="btn-ghost !p-1.5"><Icons.X /></button>
+        </div>
+        <nav className="px-3 pb-4 space-y-1">
+          {SECONDARY_NAV.map(n => (
+            <NavItem key={n.key} label={n.label} icon={n.icon} active={tab === n.key} onClick={() => pick(n.key)} />
+          ))}
+        </nav>
+      </div>
+    </>
+  )
+}
+
 export default function Shell({
   company,
   tab,
@@ -35,30 +84,12 @@ export default function Shell({
   children,
 }) {
   const { theme, toggle } = useTheme()
-
-  const navItems = [
-    { key: 'calls',     label: 'Calls',     icon: <Icons.Phone /> },
-    { key: 'leads',     label: 'Leads',     icon: <Icons.Inbox /> },
-    { key: 'schedule',  label: 'Schedule',  icon: <Icons.Calendar /> },
-    { key: 'customers', label: 'Customers', icon: <Icons.User /> },
-    { key: 'invoices',  label: 'Invoices',  icon: <Icons.Receipt /> },
-    { key: 'reviews',   label: 'Reviews',   icon: <Icons.Star /> },
-    { key: 'stats',     label: 'Stats',     icon: <Icons.BarChart /> },
-  ]
-
-  const tabSubtitle = {
-    calls:     'All inbound calls to your AI receptionist',
-    leads:     'Web form submissions waiting for a response',
-    schedule:  'Upcoming and past appointments',
-    customers: 'Everyone who has booked through Dovvia',
-    invoices:  'Bill customers after a completed job',
-    reviews:   'Customer feedback and ratings',
-    stats:     'Performance and trends',
-  }
+  const [moreOpen, setMoreOpen] = useState(false)
+  const inSecondary = SECONDARY_NAV.some(n => n.key === tab)
 
   return (
     <div className="min-h-screen bg-surface-page dark:bg-slate-950 flex">
-      {/* Sidebar — desktop only */}
+      {/* Sidebar — desktop only. Shows everything; no need to collapse here. */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 flex-col z-30">
         <div className="px-5 py-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white shadow-card">
@@ -71,7 +102,7 @@ export default function Shell({
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map(n => (
+          {ALL_NAV.map(n => (
             <NavItem key={n.key} label={n.label} icon={n.icon} active={tab === n.key} onClick={() => setTab(n.key)} />
           ))}
         </nav>
@@ -101,7 +132,7 @@ export default function Shell({
 
             <div className="hidden lg:block">
               <h1 className="text-2xl font-bold text-ink-strong dark:text-slate-100 capitalize">{tab}</h1>
-              <p className="text-sm text-ink-muted dark:text-slate-400">{tabSubtitle[tab]}</p>
+              <p className="text-sm text-ink-muted dark:text-slate-400">{TAB_SUBTITLE[tab]}</p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -127,12 +158,21 @@ export default function Shell({
         </main>
       </div>
 
-      {/* Bottom nav — mobile only */}
+      {/* Bottom nav — mobile only. Primary 4 + a More button for the rest. */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex z-30">
-        {navItems.map(n => (
+        {PRIMARY_NAV.map(n => (
           <NavItem key={n.key} variant="bottom" label={n.label} icon={n.icon} active={tab === n.key} onClick={() => setTab(n.key)} />
         ))}
+        <NavItem
+          variant="bottom"
+          label="More"
+          icon={<Icons.Menu />}
+          active={inSecondary || moreOpen}
+          onClick={() => setMoreOpen(true)}
+        />
       </nav>
+
+      {moreOpen && <MoreSheet tab={tab} setTab={setTab} onClose={() => setMoreOpen(false)} />}
     </div>
   )
 }
