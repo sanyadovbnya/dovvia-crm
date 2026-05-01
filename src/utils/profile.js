@@ -82,6 +82,7 @@ export async function loadInvoiceConfig() {
     invoice_email_subject:    p?.invoice_email_subject || DEFAULT_INVOICE_EMAIL_SUBJECT,
     invoice_email_body:       p?.invoice_email_body || DEFAULT_INVOICE_EMAIL_BODY,
     lead_intake_secret:       p?.lead_intake_secret || '',
+    vapi_webhook_secret:      p?.vapi_webhook_secret || '',
   }
 }
 

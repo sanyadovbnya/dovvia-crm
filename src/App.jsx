@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { fetchCalls } from './api/vapi'
-import { readCallsCache, writeCallsCache, mergeCalls, INCREMENTAL_OVERLAP_MS } from './utils/callsCache'
+import { fetchCallsFromDb, subscribeToCalls } from './utils/callsDb'
+import { readCallsCache, writeCallsCache, mergeCalls } from './utils/callsCache'
 import { fmtDuration, callDuration, isBooked, isWaiting, callOutputs } from './utils/formatters'
 import { upsertAppointmentsFromCalls } from './utils/appointments'
 import { fetchAllAppointments, groupIntoCustomers } from './utils/customers'
@@ -89,41 +89,48 @@ function Dashboard({ session, onLogout }) {
   }, [])
 
   const loadCalls = useCallback(async () => {
-    if (!apiKey) return
+    if (!session?.user?.id) return
     setLoading(true)
     setError('')
     try {
-      const userId = session?.user?.id
-      const cached = readCallsCache(userId)?.calls || []
-      // If we already have cached calls, only fetch a recent window —
-      // covers new calls plus any in-flight updates from the past few
-      // hours. Otherwise (cold start) fetch a fuller page.
-      let params
-      if (cached.length > 0) {
-        const newestMs = new Date(cached[0].createdAt || 0).getTime()
-        const fromMs = newestMs - INCREMENTAL_OVERLAP_MS
-        params = { limit: 50, createdAtGt: new Date(fromMs).toISOString() }
-      } else {
-        params = { limit: 50 }
-      }
-      const fresh = await fetchCalls(apiKey, params)
-      const merged = mergeCalls(fresh, cached)
-      setCalls(merged)
-      writeCallsCache(userId, merged)
-      // Only the freshly-fetched calls need to be upserted into the
-      // appointments table — older ones were already handled on previous
-      // sessions.
+      // Single source of truth is now public.calls (mirror of Vapi via
+      // the server webhook). The localStorage cache stays as an offline
+      // fallback so a flaky network doesn't blank the dashboard.
+      const fresh = await fetchCallsFromDb({ limit: 200 })
+      setCalls(fresh)
+      writeCallsCache(session.user.id, fresh)
       upsertAppointmentsFromCalls(fresh)
     } catch (e) {
-      // Keep showing whatever we already have (cache + last good fetch);
-      // surface the failure as a soft error in the existing banner.
       setError(e.message || 'Failed to load calls.')
     } finally {
       setLoading(false)
     }
-  }, [apiKey, session?.user?.id])
+  }, [session?.user?.id])
 
   useEffect(() => { loadCalls() }, [loadCalls])
+
+  // Realtime subscription — when the webhook upserts a new row, push it
+  // into local state so a freshly-completed call appears within seconds
+  // of the customer hanging up, no refresh needed.
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let unsub = () => {}
+    let active = true
+    subscribeToCalls((change) => {
+      if (!active) return
+      if (change.type === 'upsert') {
+        setCalls(prev => {
+          const next = mergeCalls([change.call], prev)
+          writeCallsCache(session.user.id, next)
+          return next
+        })
+        upsertAppointmentsFromCalls([change.call])
+      } else if (change.type === 'delete') {
+        setCalls(prev => prev.filter(c => c.id !== change.id))
+      }
+    }).then(fn => { unsub = fn })
+    return () => { active = false; unsub() }
+  }, [session?.user?.id])
 
   const loadResolutions = useCallback(async () => {
     try {

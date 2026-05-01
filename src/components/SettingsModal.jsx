@@ -7,6 +7,7 @@ import {
 } from '../utils/profile'
 import { EMAIL_TEMPLATE_PLACEHOLDERS } from '../utils/invoices'
 import { leadIntakeUrl } from '../utils/leads'
+import { vapiWebhookUrl, syncFromVapi } from '../utils/callsDb'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 
@@ -180,27 +181,36 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
       <div className="space-y-7">
         {/* Vapi */}
         {activeTab === 'vapi' && (
-        <Section
-          title="Vapi API Key"
-          subtitle="Powers the AI receptionist and pulls in your call list."
-        >
-          <Label>API Key</Label>
-          <input
-            type="password"
-            placeholder={currentVapiKey ? '••••••••••••••••' : 'vapi_xxxxxxxxxxxxxxxx…'}
-            value={vapiKey}
-            onChange={e => setVapiKey(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSaveVapi()}
-          />
-          <p className="mt-1.5 text-xs text-ink-muted dark:text-slate-400">
-            Find it at <a className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold" href="https://dashboard.vapi.ai" target="_blank" rel="noreferrer">dashboard.vapi.ai</a> → Account → API Keys
-          </p>
-          {vapiErr && <p className="mt-2 text-xs rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">{vapiErr}</p>}
-          {vapiOk && <p className="mt-2 text-xs rounded-lg bg-pastel-mint dark:bg-emerald-500/15 text-pastel-mintDeep dark:text-emerald-300 px-3 py-2">{vapiOk}</p>}
-          <button onClick={handleSaveVapi} disabled={vapiTesting} className="btn-primary w-full mt-3">
-            {vapiTesting ? 'Testing…' : (currentVapiKey ? 'Test & Replace' : 'Save & Connect')}
-          </button>
-        </Section>
+        <div className="space-y-7">
+          <Section
+            title="Vapi API Key"
+            subtitle="Powers the AI receptionist. Used server-side to backfill call history."
+          >
+            <Label>API Key</Label>
+            <input
+              type="password"
+              placeholder={currentVapiKey ? '••••••••••••••••' : 'vapi_xxxxxxxxxxxxxxxx…'}
+              value={vapiKey}
+              onChange={e => setVapiKey(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSaveVapi()}
+            />
+            <p className="mt-1.5 text-xs text-ink-muted dark:text-slate-400">
+              Find it at <a className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold" href="https://dashboard.vapi.ai" target="_blank" rel="noreferrer">dashboard.vapi.ai</a> → Account → API Keys
+            </p>
+            {vapiErr && <p className="mt-2 text-xs rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">{vapiErr}</p>}
+            {vapiOk && <p className="mt-2 text-xs rounded-lg bg-pastel-mint dark:bg-emerald-500/15 text-pastel-mintDeep dark:text-emerald-300 px-3 py-2">{vapiOk}</p>}
+            <button onClick={handleSaveVapi} disabled={vapiTesting} className="btn-primary w-full mt-3">
+              {vapiTesting ? 'Testing…' : (currentVapiKey ? 'Test & Replace' : 'Save & Connect')}
+            </button>
+          </Section>
+
+          <Section
+            title="Live call sync"
+            subtitle="Vapi posts each completed call to Dovvia in real time. Configure once in your Vapi assistant; new calls then appear in seconds."
+          >
+            <VapiWebhookRows secret={inv.vapi_webhook_secret} />
+          </Section>
+        </div>
         )}
 
         {/* Twilio */}
@@ -476,6 +486,56 @@ function CopyField({ label, value, monospace }) {
           <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
+    </div>
+  )
+}
+
+function VapiWebhookRows({ secret }) {
+  const url = vapiWebhookUrl()
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
+  const [syncErr, setSyncErr] = useState('')
+
+  async function handleSync() {
+    setSyncing(true); setSyncMsg(''); setSyncErr('')
+    try {
+      const r = await syncFromVapi()
+      setSyncMsg(`Synced ${r.inserted} call${r.inserted === 1 ? '' : 's'} from Vapi.`)
+    } catch (e) {
+      setSyncErr(e.message || 'Sync failed')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <CopyField label="Server URL" value={url} monospace />
+      <CopyField label="Server URL Secret" value={secret} monospace />
+      <div>
+        <Label>Vapi setup</Label>
+        <ol className="list-decimal list-inside text-xs text-ink-muted dark:text-slate-400 space-y-1">
+          <li>Open your assistant at <a className="text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 font-semibold" href="https://dashboard.vapi.ai" target="_blank" rel="noreferrer">dashboard.vapi.ai</a> → <strong>Advanced</strong>.</li>
+          <li>Set <strong>Server URL</strong> to the URL above.</li>
+          <li>Set <strong>Server URL Secret</strong> to the secret above (Vapi sends it as the <code className="font-mono">X-Vapi-Secret</code> header).</li>
+          <li>Save the assistant. New completed calls will appear here within seconds.</li>
+        </ol>
+      </div>
+      <div>
+        <Label>Backfill / re-sync</Label>
+        <p className="text-xs text-ink-muted dark:text-slate-400 mb-2">
+          Pulls historical calls from Vapi into Dovvia. Safe to run anytime — duplicates are deduped by Vapi&apos;s call id.
+        </p>
+        <button type="button" onClick={handleSync} disabled={syncing} className="btn-ghost w-full">
+          {syncing ? <Icons.Spinner /> : <Icons.Refresh />}
+          <span>{syncing ? 'Syncing from Vapi…' : 'Sync from Vapi'}</span>
+        </button>
+        {syncMsg && <p className="mt-2 text-xs rounded-lg bg-pastel-mint dark:bg-emerald-500/15 text-pastel-mintDeep dark:text-emerald-300 px-3 py-2">{syncMsg}</p>}
+        {syncErr && <p className="mt-2 text-xs rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">{syncErr}</p>}
+      </div>
+      <p className="text-xs text-ink-faint dark:text-slate-500">
+        Treat this secret like a password — anyone with it can post calls into your account.
+      </p>
     </div>
   )
 }
