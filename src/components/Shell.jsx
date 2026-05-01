@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Icons } from './Icons'
 import { useTheme } from '../utils/theme'
+import useDismissOnBack from '../utils/useDismissOnBack'
 
 // Daily-use views — shown directly on the mobile bottom nav.
 const PRIMARY_NAV = [
@@ -54,6 +55,8 @@ function NavItem({ label, icon, active, onClick, variant = 'side' }) {
 
 // Mobile overflow menu — opens from the More button on the bottom nav.
 function MoreSheet({ tab, setTab, onClose }) {
+  // Swipe-back closes the sheet (it lives bottom-of-screen on mobile only).
+  useDismissOnBack(onClose)
   function pick(key) { setTab(key); onClose() }
   return (
     <>

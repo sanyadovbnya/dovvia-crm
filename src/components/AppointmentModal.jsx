@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Icons } from './Icons'
+import useDismissOnBack from '../utils/useDismissOnBack'
 
 const SERVICE_TYPES = [
   'Appliance Repair', 'HVAC', 'Plumbing', 'Electrical',
@@ -198,6 +199,8 @@ export function AppointmentDetail({ appt, onReschedule, onCancel, onClose, savin
 }
 
 export function Modal({ title, children, onClose }) {
+  // Swipe-back / browser-back closes the modal instead of leaving the page.
+  useDismissOnBack(onClose)
   return (
     <>
       <div onClick={onClose} className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" />

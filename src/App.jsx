@@ -313,13 +313,26 @@ function Dashboard({ session, onLogout }) {
   const callDayGroups = groupByDay(callsPageData.items, c => c.createdAt)
 
   // Refresh button: always re-syncs calls + clears the tab dedup so the
-  // current tab's auxiliary data refetches on next render.
+  // current tab's auxiliary data refetches. We repopulate the dedup set
+  // on success so a follow-up tab switch doesn't double-fetch.
   function handleRefresh() {
     tabsLoadedRef.current.clear()
     loadCalls()
-    if (tab === 'schedule' || tab === 'customers') fetchAllAppointments().then(setAppointments).catch(() => {})
-    if (tab === 'invoices') fetchInvoices().then(setInvoices).catch(() => {})
-    if (tab === 'reviews') fetchReviews().then(setReviews).catch(() => {})
+    if (tab === 'schedule' || tab === 'customers') {
+      fetchAllAppointments()
+        .then(a => { setAppointments(a); tabsLoadedRef.current.add('appointments') })
+        .catch(() => {})
+    }
+    if (tab === 'invoices') {
+      fetchInvoices()
+        .then(v => { setInvoices(v); tabsLoadedRef.current.add('invoices') })
+        .catch(() => {})
+    }
+    if (tab === 'reviews') {
+      fetchReviews()
+        .then(r => { setReviews(r); tabsLoadedRef.current.add('reviews') })
+        .catch(() => {})
+    }
   }
 
   return (

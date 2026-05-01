@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fmtDate, fmtDuration, callDuration, parseTranscript, callOutputs, isWaiting } from '../utils/formatters'
 import { aiParseInvoice, buildInvoiceDraftFromCall, buildAIContextFromCall } from '../utils/invoices'
 import { phoneDigits, fmtPhone } from '../utils/phone'
@@ -8,6 +8,7 @@ import { Icons } from './Icons'
 import ResolutionForm from './ResolutionForm'
 import ResolutionToggleButton from './ResolutionToggleButton'
 import SmsButton from './SmsButton'
+import useDismissOnBack from '../utils/useDismissOnBack'
 
 function Section({ title, children }) {
   return (
@@ -89,6 +90,9 @@ function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice, c
 }
 
 export default function CallDetail({ call, resolution, onResolutionChange, onGenerateInvoice, onClose, shopName, ownerName }) {
+  // iOS swipe-back / browser back closes the panel instead of unloading
+  // the dashboard route.
+  useDismissOnBack(onClose)
   const [resolutionOpen, setResolutionOpen] = useState(false)
   const [copiedPhone, setCopiedPhone] = useState(false)
   // Recordings are big files — defer rendering the <audio> element until
@@ -102,13 +106,19 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
     setResolutionOpen(false)
   }, [call.id])
 
+  // Hold the "Copied!" timer in a ref so unmounting/switching calls cancels
+  // it cleanly — otherwise the setState would fire on a stale component.
+  const copiedTimerRef = useRef(null)
+  useEffect(() => () => { if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current) }, [])
+
   // Copies the displayed (formatted) phone number to the clipboard so Mike
   // can paste it into another tool. The "Copied!" hint clears after 1.5s.
   async function handleCopyPhone(phone) {
     try {
       await navigator.clipboard.writeText(fmtPhone(phone))
       setCopiedPhone(true)
-      setTimeout(() => setCopiedPhone(false), 1500)
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+      copiedTimerRef.current = setTimeout(() => setCopiedPhone(false), 1500)
     } catch {
       // clipboard API blocked — fail silently; the number is still visible
     }

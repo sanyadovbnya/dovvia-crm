@@ -8,6 +8,7 @@ import { Icons } from './Icons'
 import LeadResolutionForm from './LeadResolutionForm'
 import ResolutionToggleButton from './ResolutionToggleButton'
 import DateGroupHeader from './DateGroupHeader'
+import useDismissOnBack from '../utils/useDismissOnBack'
 import Pagination, { paginate } from './Pagination'
 import { groupByDay } from '../utils/dates'
 
@@ -67,6 +68,8 @@ function LeadRow({ lead, active, onClick }) {
 }
 
 function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
+  // Swipe-back / browser-back closes the panel.
+  useDismissOnBack(onClose)
   const [resolutionOpen, setResolutionOpen] = useState(false)
   const initial = (lead.name || lead.email || '?').charAt(0).toUpperCase()
 
