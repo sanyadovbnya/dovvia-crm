@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { fetchLeads, deleteLead, createLead, LEAD_STATUSES } from '../utils/leads'
+import { fetchLeads, deleteLead, createLead, setLeadReachedOut, LEAD_STATUSES } from '../utils/leads'
 import { supabase } from '../lib/supabase'
 import { getSession } from '../utils/auth'
 import { fmtPhone } from '../utils/phone'
@@ -28,31 +28,46 @@ function statusBadge(status) {
 
 function LeadRow({ lead, active, onClick }) {
   const initial = (lead.name || lead.email || '?').charAt(0).toUpperCase()
+  const reached = !!lead.reached_out_at
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={onClick}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
-      className={`w-full text-left px-4 sm:px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 last:border-b-0 transition cursor-pointer ${active ? 'bg-brand-50 dark:bg-brand-500/15' : 'hover:bg-surface-muted dark:hover:bg-slate-800'}`}
+      className={`w-full text-left px-4 sm:px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 last:border-b-0 transition cursor-pointer overflow-hidden ${active ? 'bg-brand-50 dark:bg-brand-500/15' : 'hover:bg-surface-muted dark:hover:bg-slate-800'}`}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
         <div className="h-10 w-10 shrink-0 rounded-xl bg-pastel-mint text-pastel-mintDeep dark:bg-emerald-500/20 dark:text-emerald-300 flex items-center justify-center font-semibold text-sm">
           {initial}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-ink-strong dark:text-slate-100 text-sm truncate">
+          {/* Name + status badge — name takes the rest of the row width
+              and truncates with ellipsis; the badge stays at its
+              natural size on the right. min-w-0 + flex-1 + truncate is
+              the canonical pattern for "long text in a flex item". */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-semibold text-ink-strong dark:text-slate-100 text-sm truncate flex-1 min-w-0">
               {lead.name || lead.email || lead.phone || 'New lead'}
             </span>
-            {statusBadge(lead.status)}
+            <div className="shrink-0 flex items-center gap-1.5">
+              {reached && (
+                <span
+                  title={`Reached out ${fmtRelative(lead.reached_out_at)}`}
+                  className="badge badge-blue normal-case tracking-normal !text-[10px] !px-2 !py-0"
+                >
+                  ↗ Reached
+                </span>
+              )}
+              {statusBadge(lead.status)}
+            </div>
           </div>
           <p className="text-xs text-ink-muted dark:text-slate-400 mt-0.5 truncate">
             {[lead.email, fmtPhone(lead.phone)].filter(Boolean).join(' · ')}
           </p>
           {lead.details && (
-            <p className="text-xs text-ink-muted dark:text-slate-400 mt-0.5 truncate">
+            <p className="text-xs text-ink-muted dark:text-slate-400 mt-0.5 line-clamp-2 break-words">
               {lead.details}
             </p>
           )}
@@ -90,6 +105,22 @@ function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
       onDeleted?.()
     } catch (e) {
       alert(e.message || 'Failed to remove lead')
+    }
+  }
+
+  // Toggle "reached out" stamp. Clicking when already stamped clears
+  // it (operator may have stamped by mistake or wants to reset).
+  const reached = !!lead.reached_out_at
+  const [reachBusy, setReachBusy] = useState(false)
+  async function handleToggleReached() {
+    setReachBusy(true)
+    try {
+      await setLeadReachedOut(lead.id, !reached)
+      onChanged?.()
+    } catch (e) {
+      alert(e.message || 'Failed to update lead')
+    } finally {
+      setReachBusy(false)
     }
   }
 
@@ -134,6 +165,30 @@ function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
               </div>
             </div>
           )}
+
+          {/* Reached-out toggle — orthogonal to status. Stamps "I called
+              them" without locking the lead into a final outcome. */}
+          <button
+            type="button"
+            onClick={handleToggleReached}
+            disabled={reachBusy}
+            className={`w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition shadow-card disabled:opacity-60 ${reached
+              ? 'bg-sky-500 hover:bg-sky-600 text-white'
+              : 'bg-white dark:bg-slate-900 ring-1 ring-sky-300 dark:ring-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-500/10'}`}
+          >
+            {reached ? (
+              <>
+                <Icons.Check />
+                <span>Reached out · {fmtRelative(lead.reached_out_at)}</span>
+                <span className="text-xs opacity-80">(tap to undo)</span>
+              </>
+            ) : (
+              <>
+                <Icons.Phone />
+                <span>Mark as reached out</span>
+              </>
+            )}
+          </button>
 
           {/* Resolution toolbar — Mark Resolved + Spam on one row. */}
           <div className="flex items-stretch gap-2">

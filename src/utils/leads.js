@@ -42,6 +42,16 @@ export async function createLead(fields) {
   return data
 }
 
+// Toggles the per-lead "reached out" timestamp. Pass `true` to stamp now,
+// `false` to clear it (undo). Operator may have called/texted but not
+// yet booked or closed the lead, so we track this independently of
+// status — a "waiting" lead can still be "reached out."
+export async function setLeadReachedOut(id, reached) {
+  return updateLead(id, {
+    reached_out_at: reached ? new Date().toISOString() : null,
+  })
+}
+
 export async function updateLead(id, updates) {
   const s = await getSession()
   if (!s) throw new Error('Not authenticated')
