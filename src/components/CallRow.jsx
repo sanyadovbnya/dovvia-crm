@@ -2,7 +2,6 @@ import { fmtDate, fmtDuration, callDuration, isBooked, isWaiting, getCallerName,
 import { OUTCOMES, fmtCents } from '../utils/resolutions'
 import { phoneDigits, fmtPhone } from '../utils/phone'
 import { buildCallbackSms } from '../utils/sms'
-import { EndReasonBadge } from './Badges'
 import SmsButton from './SmsButton'
 
 function ResolutionPill({ resolution }) {
@@ -58,26 +57,28 @@ export default function CallRow({ call, resolution, active, onClick, shopName, o
             {waiting && <span className="badge badge-yellow">Waiting</span>}
             <ResolutionPill resolution={resolution} />
           </div>
-          {/* Phone gets bumped to text-sm on mobile so it's tappable-readable
-              under the name; desktop stays compact at text-xs. */}
-          <p className="text-sm sm:text-xs text-ink-muted dark:text-slate-400 mt-0.5 truncate font-medium sm:font-normal tabular-nums">
-            {phoneShown && !phoneIsName ? fmtPhone(phoneShown) : fmtDate(call.createdAt)}
-            {differ && (
-              <span className="ml-1.5 text-ink-faint dark:text-slate-500 font-normal">· from {fmtPhone(callerId)}</span>
-            )}
-          </p>
+          {/* Phone line is shown only when we actually have something
+              new to add — i.e. there's a separate phone number distinct
+              from the caller name. Otherwise we skip it so the date
+              doesn't end up rendered twice (once here, once below). */}
+          {phoneShown && !phoneIsName && (
+            <p className="text-sm sm:text-xs text-ink-muted dark:text-slate-400 mt-0.5 truncate font-medium sm:font-normal tabular-nums">
+              {fmtPhone(phoneShown)}
+              {differ && (
+                <span className="ml-1.5 text-ink-faint dark:text-slate-500 font-normal">· from {fmtPhone(callerId)}</span>
+              )}
+            </p>
+          )}
 
           <div className="mt-2 flex items-center gap-2 sm:hidden">
-            <EndReasonBadge reason={call.endedReason} />
-            <span className="text-[11px] text-ink-muted dark:text-slate-400">
-              {duration !== null ? fmtDuration(duration) : '—'} · {fmtDate(call.createdAt)}
+            <span className="text-[11px] text-ink-muted dark:text-slate-400 tabular-nums">
+              {fmtDate(call.createdAt)} · {duration !== null ? fmtDuration(duration) : '—'}
             </span>
           </div>
         </div>
 
         <div className="hidden sm:flex items-center gap-3 shrink-0">
           <p className="text-xs text-ink-muted dark:text-slate-400 w-32 text-right">{fmtDate(call.createdAt)}</p>
-          <div className="w-28 flex justify-start"><EndReasonBadge reason={call.endedReason} /></div>
           <p className="text-xs text-ink-muted dark:text-slate-400 tabular-nums w-14 text-center">
             {duration !== null ? fmtDuration(duration) : '—'}
           </p>

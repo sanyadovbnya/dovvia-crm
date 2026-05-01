@@ -411,11 +411,10 @@ function Dashboard({ session, onLogout }) {
 
           {/* Call list */}
           <div className="card overflow-hidden">
-            <div className="hidden sm:grid grid-cols-[1fr_128px_112px_56px_20px] items-center gap-3 px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-surface-muted/40 dark:bg-slate-800/40">
+            <div className="hidden sm:grid grid-cols-[1fr_128px_56px_64px] items-center gap-3 px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-surface-muted/40 dark:bg-slate-800/40">
               {[
                 { label: 'Caller' },
                 { label: 'Date & Time', align: 'text-right' },
-                { label: 'Status' },
                 { label: 'Duration', align: 'text-center' },
                 { label: '' },
               ].map((h, i) => (

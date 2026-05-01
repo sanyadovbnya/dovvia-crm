@@ -22,7 +22,9 @@ export default function SmsButton({
   if (!href) return null
   const layout =
     size === 'block' ? 'w-full h-11 px-4'      :
-    size === 'row'   ? 'self-stretch w-12 sm:w-14 min-h-[56px]' :
+    // `row` stretches to the row's height and is square-ish (w-16 = 64px)
+    // so list rows get a fat tap target instead of a slim chip.
+    size === 'row'   ? 'self-stretch w-16 min-h-[64px]' :
     size === 'lg'    ? 'h-12 w-12'             :
     size === 'sm'    ? 'h-8 w-8'               :
                        'h-10 w-10'
