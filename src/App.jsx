@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { fetchCallsFromDb, subscribeToCalls } from './utils/callsDb'
 import { readCallsCache, writeCallsCache, mergeCalls } from './utils/callsCache'
@@ -22,6 +22,9 @@ import CallDetail from './components/CallDetail'
 import Calendar from './components/Calendar'
 import Stats from './components/Stats'
 import Customers from './components/Customers'
+// Lazy-loaded so Leaflet (~150KB) only downloads when Mike actually opens
+// the Map tab — keeps the initial Calls-first paint quick on flaky LTE.
+const MapPage = lazy(() => import('./components/MapPage'))
 import Invoices from './components/Invoices'
 import Leads from './components/Leads'
 import Reviews from './components/Reviews'
@@ -294,6 +297,7 @@ function Dashboard({ session, onLogout }) {
     : tab === 'reviews'   ? reviewsCards
     : tab === 'leads'     ? null
     : tab === 'stats'     ? null
+    : tab === 'map'       ? null
     : callsCards
 
   const filtered = (() => {
@@ -487,6 +491,17 @@ function Dashboard({ session, onLogout }) {
         <section className="mt-6">
           <Customers onGenerateInvoice={generateInvoiceFor} />
         </section>
+      )}
+
+      {tab === 'map' && (
+        <Suspense fallback={
+          <div className="mt-6 flex items-center gap-2 text-sm text-ink-muted dark:text-slate-400">
+            <span className="spinner inline-block"><Icons.Spinner /></span>
+            Loading map…
+          </div>
+        }>
+          <MapPage />
+        </Suspense>
       )}
 
       {tab === 'invoices' && (

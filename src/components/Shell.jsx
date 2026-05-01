@@ -8,11 +8,12 @@ const PRIMARY_NAV = [
   { key: 'calls',     label: 'Calls',     icon: <Icons.Phone /> },
   { key: 'leads',     label: 'Leads',     icon: <Icons.Inbox /> },
   { key: 'schedule',  label: 'Schedule',  icon: <Icons.Calendar /> },
-  { key: 'customers', label: 'Customers', icon: <Icons.User /> },
+  { key: 'map',       label: 'Map',       icon: <Icons.MapPin /> },
 ]
 
 // Less-frequent views — collapsed behind a "More" button on mobile.
 const SECONDARY_NAV = [
+  { key: 'customers', label: 'Customers', icon: <Icons.User /> },
   { key: 'invoices',  label: 'Invoices',  icon: <Icons.Receipt /> },
   { key: 'reviews',   label: 'Reviews',   icon: <Icons.Star /> },
   { key: 'stats',     label: 'Stats',     icon: <Icons.BarChart /> },
@@ -24,6 +25,7 @@ const TAB_SUBTITLE = {
   calls:     'All inbound calls to your AI receptionist',
   leads:     'Web form submissions waiting for a response',
   schedule:  'Upcoming and past appointments',
+  map:       'Customer locations across your service area',
   customers: 'Everyone who has booked through Dovvia',
   invoices:  'Bill customers after a completed job',
   reviews:   'Customer feedback and ratings',

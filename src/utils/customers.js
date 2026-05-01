@@ -8,7 +8,7 @@ export async function fetchAllAppointments() {
   if (!session) return []
   const { data, error } = await supabase
     .from('appointments')
-    .select('id, customer_name, customer_phone, caller_phone, customer_address, service_type, problem, date, time_start, time_end, status, notes, created_at')
+    .select('id, customer_name, customer_phone, caller_phone, customer_address, service_type, problem, date, time_start, time_end, status, notes, created_at, lat, lng')
     .eq('user_id', session.user.id)
     .order('date', { ascending: false })
     .order('time_start', { ascending: false })
