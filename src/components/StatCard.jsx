@@ -7,20 +7,32 @@ const TONES = {
   sky:      { surface: 'bg-pastel-sky       dark:bg-blue-500/10',     accent: 'bg-blue-200        dark:bg-blue-500/30',     icon: 'text-pastel-skyDeep   dark:text-blue-300' },
 }
 
-export default function StatCard({ label, value, sub, tone = 'brand', icon }) {
+// When `onClick` is supplied the card renders as a button with hover/focus
+// affordances. Otherwise it stays a plain div so non-interactive stats don't
+// look clickable.
+export default function StatCard({ label, value, sub, tone = 'brand', icon, onClick, title }) {
   const t = TONES[tone] || TONES.brand
-  return (
-    <div className={`rounded-xl2 p-5 shadow-card dark:shadow-none dark:ring-1 dark:ring-slate-800 ${t.surface}`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400">{label}</p>
-          <p className="mt-1.5 text-3xl font-bold text-ink-strong dark:text-slate-100 leading-none">{value}</p>
-          {sub && <p className="mt-2 text-xs text-ink-muted dark:text-slate-400">{sub}</p>}
-        </div>
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${t.accent} ${t.icon}`}>
-          {icon}
-        </div>
+  const interactive = typeof onClick === 'function'
+  const base = `rounded-xl2 p-3.5 shadow-card dark:shadow-none dark:ring-1 dark:ring-slate-800 ${t.surface}`
+  const interactiveCx = 'text-left w-full transition hover:-translate-y-0.5 hover:shadow-pop active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 cursor-pointer'
+  const inner = (
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400">{label}</p>
+        <p className="mt-1 text-xl sm:text-2xl font-bold text-ink-strong dark:text-slate-100 leading-none">{value}</p>
+        {sub && <p className="mt-1 text-[11px] text-ink-muted dark:text-slate-400 truncate">{sub}</p>}
+      </div>
+      <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${t.accent} ${t.icon} shrink-0`}>
+        {icon}
       </div>
     </div>
   )
+  if (interactive) {
+    return (
+      <button type="button" onClick={onClick} title={title} className={`${base} ${interactiveCx}`}>
+        {inner}
+      </button>
+    )
+  }
+  return <div className={base} title={title}>{inner}</div>
 }

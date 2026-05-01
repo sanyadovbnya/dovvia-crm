@@ -153,13 +153,40 @@ function Dashboard({ session, onLogout }) {
     ? durations.reduce((a, b) => a + b, 0) / durations.length
     : 0
 
-  // Per-tab stat cards
+  // Per-tab stat cards. The Calls stats double as quick filters: clicking
+  // Appointments/Waiting flips the chip below; Today resets to the unfiltered
+  // list and scrolls to today's section. Total Calls is a "back to all" reset.
+  function jumpToCallsToday() {
+    setCallsFilter('all')
+    setSearch('')
+    setCallsPage(1)
+    // Wait two frames so the list re-renders before we try to scroll.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById('calls-day-today')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }))
+  }
   const callsCards = (
     <>
-      <StatCard label="Total Calls"   value={calls.length}              sub="all time"           tone="lavender" icon={<Icons.Phone />} />
-      <StatCard label="Today"         value={todayCalls.length}         sub="calls today"        tone="sky"      icon={<Icons.Microphone />} />
-      <StatCard label="Appointments"  value={bookedCalls.length}        sub="booked total"       tone="mint"     icon={<Icons.Calendar />} />
-      <StatCard label="Waiting"       value={waitingCalls.length}       sub="want a callback"    tone="peach"    icon={<Icons.Clock />} />
+      <StatCard
+        label="Total Calls" value={calls.length} sub="all time" tone="lavender" icon={<Icons.Phone />}
+        title="Show all calls"
+        onClick={() => { setCallsFilter('all'); setSearch(''); setCallsPage(1) }}
+      />
+      <StatCard
+        label="Today" value={todayCalls.length} sub="calls today" tone="sky" icon={<Icons.Microphone />}
+        title="Jump to today's calls"
+        onClick={jumpToCallsToday}
+      />
+      <StatCard
+        label="Appointments" value={bookedCalls.length} sub="booked total" tone="mint" icon={<Icons.Calendar />}
+        title="Show booked calls"
+        onClick={() => { setCallsFilter('booked'); setCallsPage(1) }}
+      />
+      <StatCard
+        label="Waiting" value={waitingCalls.length} sub="want a callback" tone="peach" icon={<Icons.Clock />}
+        title="Show waiting callers"
+        onClick={() => { setCallsFilter('waiting'); setCallsPage(1) }}
+      />
     </>
   )
 
@@ -351,7 +378,10 @@ function Dashboard({ session, onLogout }) {
               <div>
                 {callDayGroups.map(group => (
                   <div key={group.label}>
-                    <DateGroupHeader label={group.label} />
+                    <DateGroupHeader
+                      label={group.label}
+                      id={group.label === 'Today' ? 'calls-day-today' : undefined}
+                    />
                     {group.items.map(call => (
                       <CallRow
                         key={call.id}
