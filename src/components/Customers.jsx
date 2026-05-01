@@ -4,6 +4,7 @@ import { fmtPhone } from '../utils/phone'
 import { fmtTime } from '../utils/formatters'
 import { buildInvoiceDraftFromCustomer } from '../utils/invoices'
 import { Icons } from './Icons'
+import Pagination, { paginate } from './Pagination'
 
 function fmtDate(iso) {
   if (!iso) return '—'
@@ -272,7 +273,11 @@ export default function Customers({ onGenerateInvoice }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [selected, setSelected] = useState(null)
+
+  // Reset to page 1 whenever the search filter changes the visible set.
+  useEffect(() => { setPage(1) }, [search])
 
   function reload() {
     setLoading(true)
@@ -303,6 +308,8 @@ export default function Customers({ onGenerateInvoice }) {
         || Object.keys(c.services || {}).some(s => s.toLowerCase().includes(q))
     })
   }, [customers, search])
+
+  const pageData = paginate(filtered, page)
 
   return (
     <div>
@@ -348,7 +355,7 @@ export default function Customers({ onGenerateInvoice }) {
           </div>
         ) : (
           <div>
-            {filtered.map(c => (
+            {pageData.items.map(c => (
               <CustomerRow
                 key={c.key}
                 customer={c}
@@ -356,6 +363,7 @@ export default function Customers({ onGenerateInvoice }) {
                 onClick={() => setSelected(selected?.key === c.key ? null : c)}
               />
             ))}
+            <Pagination {...pageData} onChange={setPage} />
           </div>
         )}
       </div>

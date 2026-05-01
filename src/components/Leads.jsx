@@ -7,6 +7,9 @@ import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 import LeadResolutionForm from './LeadResolutionForm'
 import ResolutionToggleButton from './ResolutionToggleButton'
+import DateGroupHeader from './DateGroupHeader'
+import Pagination, { paginate } from './Pagination'
+import { groupByDay } from '../utils/dates'
 
 function fmtRelative(iso) {
   if (!iso) return '—'
@@ -229,8 +232,12 @@ export default function Leads() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
+  const [page, setPage] = useState(1)
   const [selected, setSelected] = useState(null)
   const [showNew, setShowNew] = useState(false)
+
+  // Reset to page 1 when the visible set changes underneath.
+  useEffect(() => { setPage(1) }, [filter, search])
 
   async function reload() {
     setLoading(true); setError('')
@@ -283,6 +290,9 @@ export default function Leads() {
   }), [leads])
 
   const selectedAppt = selected?.appointment_id ? appointments[selected.appointment_id] : null
+
+  const pageData = paginate(filtered, page)
+  const dayGroups = groupByDay(pageData.items, l => l.created_at)
 
   return (
     <div>
@@ -351,14 +361,20 @@ export default function Leads() {
           </div>
         ) : (
           <div>
-            {filtered.map(lead => (
-              <LeadRow
-                key={lead.id}
-                lead={lead}
-                active={selected?.id === lead.id}
-                onClick={() => setSelected(selected?.id === lead.id ? null : lead)}
-              />
+            {dayGroups.map(group => (
+              <div key={group.label}>
+                <DateGroupHeader label={group.label} />
+                {group.items.map(lead => (
+                  <LeadRow
+                    key={lead.id}
+                    lead={lead}
+                    active={selected?.id === lead.id}
+                    onClick={() => setSelected(selected?.id === lead.id ? null : lead)}
+                  />
+                ))}
+              </div>
             ))}
+            <Pagination {...pageData} onChange={setPage} />
           </div>
         )}
       </div>

@@ -23,6 +23,9 @@ import Customers from './components/Customers'
 import Invoices from './components/Invoices'
 import Leads from './components/Leads'
 import Reviews from './components/Reviews'
+import DateGroupHeader from './components/DateGroupHeader'
+import Pagination, { paginate } from './components/Pagination'
+import { groupByDay } from './utils/dates'
 import Shell from './components/Shell'
 import SettingsModal from './components/SettingsModal'
 import { Icons } from './components/Icons'
@@ -37,7 +40,8 @@ function Dashboard({ session, onLogout }) {
   const [search, setSearch] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [tab, setTab] = useState('calls')
-  const [callsFilter, setCallsFilter] = useState('all') // 'all' | 'booked' | 'waiting'
+  const [callsFilter, setCallsFilter] = useState('all') // 'all' | 'booked' | 'waiting' | 'done'
+  const [callsPage, setCallsPage] = useState(1)
   const [appointments, setAppointments] = useState([])
   const [invoices, setInvoices] = useState([])
   const [reviews, setReviews] = useState([])
@@ -112,6 +116,10 @@ function Dashboard({ session, onLogout }) {
       fetchReviews().then(setReviews).catch(() => {})
     }
   }, [apiKey, tab])
+
+  // Snap back to page 1 whenever the visible set changes underneath.
+  // Must live above the early returns so React sees the same hook list every render.
+  useEffect(() => { setCallsPage(1) }, [callsFilter, search])
 
   async function handleSaveKey(key) {
     await saveVapiKey(key)
@@ -234,6 +242,9 @@ function Dashboard({ session, onLogout }) {
     })
   })()
 
+  const callsPageData = paginate(filtered, callsPage)
+  const callDayGroups = groupByDay(callsPageData.items, c => c.createdAt)
+
   return (
     <Shell
       company={shopName}
@@ -338,15 +349,21 @@ function Dashboard({ session, onLogout }) {
               </div>
             ) : (
               <div>
-                {filtered.map(call => (
-                  <CallRow
-                    key={call.id}
-                    call={call}
-                    resolution={resolutions[call.id]}
-                    active={selected?.id === call.id}
-                    onClick={() => setSelected(selected?.id === call.id ? null : call)}
-                  />
+                {callDayGroups.map(group => (
+                  <div key={group.label}>
+                    <DateGroupHeader label={group.label} />
+                    {group.items.map(call => (
+                      <CallRow
+                        key={call.id}
+                        call={call}
+                        resolution={resolutions[call.id]}
+                        active={selected?.id === call.id}
+                        onClick={() => setSelected(selected?.id === call.id ? null : call)}
+                      />
+                    ))}
+                  </div>
                 ))}
+                <Pagination {...callsPageData} onChange={setCallsPage} />
               </div>
             )}
           </div>

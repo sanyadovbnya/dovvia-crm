@@ -10,6 +10,7 @@ import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 import InvoicePrintView from './InvoicePrintView'
 import InvoiceSheet from './InvoiceSheet'
+import Pagination, { paginate } from './Pagination'
 
 const STATUS_TONE = {
   draft: 'bg-slate-100       text-ink-muted        dark:bg-slate-800       dark:text-slate-400',
@@ -356,10 +357,14 @@ export default function Invoices({ initialDraft, onConsumeDraft }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [modal, setModal] = useState(null) // { type: 'new' | 'edit' | 'detail', invoice? }
   const [printing, setPrinting] = useState(null) // invoice
   const [saving, setSaving] = useState(false)
   const [emailingId, setEmailingId] = useState(null) // invoice id currently being prepared for email
+
+  // Reset to page 1 whenever the search filter changes the visible set.
+  useEffect(() => { setPage(1) }, [search])
 
   async function reload() {
     try {
@@ -447,6 +452,8 @@ export default function Invoices({ initialDraft, onConsumeDraft }) {
     )
   }, [invoices, search])
 
+  const pageData = paginate(filtered, page)
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -489,7 +496,8 @@ export default function Invoices({ initialDraft, onConsumeDraft }) {
             <p className="text-ink-strong dark:text-slate-100 font-medium">{search ? 'No invoices match your search.' : 'No invoices yet.'}</p>
             {!search && <p className="text-sm text-ink-muted dark:text-slate-400 mt-1">Create one after a job to bill the customer.</p>}
           </div>
-        ) : filtered.map(inv => (
+        ) : (<>
+          {pageData.items.map(inv => (
           <button
             key={inv.id}
             onClick={() => setModal({ type: 'detail', invoice: inv })}
@@ -515,7 +523,9 @@ export default function Invoices({ initialDraft, onConsumeDraft }) {
               <span className="hidden sm:inline text-ink-faint dark:text-slate-600"><Icons.ChevronRight /></span>
             </div>
           </button>
-        ))}
+          ))}
+          <Pagination {...pageData} onChange={setPage} />
+        </>)}
       </div>
 
       {modal?.type === 'new' && (
