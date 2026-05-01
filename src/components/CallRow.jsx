@@ -79,18 +79,18 @@ export default function CallRow({ call, resolution, active, onClick, shopName, o
       onKeyDown={handleKeyDown}
       className={`w-full text-left border-b border-slate-100 dark:border-slate-800 last:border-b-0 transition cursor-pointer ${active ? 'bg-brand-50 dark:bg-brand-500/15' : 'hover:bg-surface-muted dark:hover:bg-slate-800'}`}
     >
-      <div className="flex items-stretch gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 relative">
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 relative">
         {/* Left-edge color stripe — at-a-glance status indicator. */}
         <span
           aria-hidden
           className={`absolute left-0 top-0 bottom-0 w-1 ${stripeColorClass(resolution, booked, waiting)}`}
         />
 
-        <div className="h-10 w-10 shrink-0 rounded-xl bg-pastel-lavender text-pastel-lavDeep dark:bg-indigo-500/20 dark:text-indigo-300 flex items-center justify-center font-semibold text-sm self-center">
+        <div className="h-10 w-10 shrink-0 rounded-xl bg-pastel-lavender text-pastel-lavDeep dark:bg-indigo-500/20 dark:text-indigo-300 flex items-center justify-center font-semibold text-sm">
           {name?.charAt(0)?.toUpperCase() || '?'}
         </div>
 
-        <div className="flex-1 min-w-0 self-center">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-ink-strong dark:text-slate-100 text-sm truncate">{name}</span>
             <ResolutionPill resolution={resolution} />
