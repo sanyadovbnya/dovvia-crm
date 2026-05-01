@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { fmtDate, fmtDuration, callDuration, parseTranscript, callOutputs, isWaiting } from '../utils/formatters'
 import { aiParseInvoice, buildInvoiceDraftFromCall, buildAIContextFromCall } from '../utils/invoices'
 import { phoneDigits, fmtPhone } from '../utils/phone'
@@ -91,6 +91,16 @@ function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice, c
 export default function CallDetail({ call, resolution, onResolutionChange, onGenerateInvoice, onClose, shopName, ownerName }) {
   const [resolutionOpen, setResolutionOpen] = useState(false)
   const [copiedPhone, setCopiedPhone] = useState(false)
+  // Recordings are big files — defer rendering the <audio> element until
+  // the operator explicitly asks for it so opening a call doesn't burn
+  // mobile data on metadata fetches.
+  const [recordingRequested, setRecordingRequested] = useState(false)
+  // The panel stays mounted when switching between calls, so reset
+  // per-call UI state whenever the call id changes.
+  useEffect(() => {
+    setRecordingRequested(false)
+    setResolutionOpen(false)
+  }, [call.id])
 
   // Copies the displayed (formatted) phone number to the clipboard so Mike
   // can paste it into another tool. The "Copied!" hint clears after 1.5s.
@@ -239,12 +249,31 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
             </Section>
           )}
 
-          {/* Recording */}
+          {/* Recording — fetched lazily on click so opening the call panel
+              doesn't pull the audio file across mobile data. After the
+              operator hits Load, the <audio> element mounts with autoPlay
+              so the click feels like a single "play" gesture. */}
           {recording && (
             <Section title="Recording">
-              <audio controls className="w-full rounded-lg mt-1" src={recording}>
-                Your browser does not support the audio element.
-              </audio>
+              {recordingRequested ? (
+                <audio
+                  controls
+                  autoPlay
+                  preload="metadata"
+                  className="w-full rounded-lg mt-1"
+                  src={recording}
+                >
+                  Your browser does not support the audio element.
+                </audio>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setRecordingRequested(true)}
+                  className="btn-ghost w-full !py-2.5"
+                >
+                  <Icons.Microphone /> Load recording
+                </button>
+              )}
             </Section>
           )}
 
