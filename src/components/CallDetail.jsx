@@ -9,13 +9,17 @@ import ResolutionForm from './ResolutionForm'
 import ResolutionToggleButton from './ResolutionToggleButton'
 import SmsButton from './SmsButton'
 import useDismissOnBack from '../utils/useDismissOnBack'
+import { translateText } from '../utils/translate'
 
-function Section({ title, children }) {
+function Section({ title, action, children }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-2">
-        {title}
-      </p>
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400">
+          {title}
+        </p>
+        {action}
+      </div>
       <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-2">
         {children}
       </div>
@@ -99,17 +103,44 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
   // the operator explicitly asks for it so opening a call doesn't burn
   // mobile data on metadata fetches.
   const [recordingRequested, setRecordingRequested] = useState(false)
-  // The panel stays mounted when switching between calls, so reset
-  // per-call UI state whenever the call id changes.
+  // Russian translation of the call summary (cached per call so toggling
+  // on/off doesn't re-hit OpenAI). The panel stays mounted across calls,
+  // so reset everything when the call id changes.
+  const [summaryRu, setSummaryRu] = useState('')
+  const [showRu, setShowRu] = useState(false)
+  const [translating, setTranslating] = useState(false)
+  const [translateErr, setTranslateErr] = useState('')
   useEffect(() => {
     setRecordingRequested(false)
     setResolutionOpen(false)
+    setSummaryRu('')
+    setShowRu(false)
+    setTranslating(false)
+    setTranslateErr('')
   }, [call.id])
 
   // Hold the "Copied!" timer in a ref so unmounting/switching calls cancels
   // it cleanly — otherwise the setState would fire on a stale component.
   const copiedTimerRef = useRef(null)
   useEffect(() => () => { if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current) }, [])
+
+  // Toggles between English (the original captured by Vapi) and Russian.
+  // Translation is fetched once per call and reused on every re-toggle.
+  async function handleTranslateSummary() {
+    if (showRu) { setShowRu(false); return }
+    if (summaryRu) { setShowRu(true); return }
+    if (!summary) return
+    setTranslating(true); setTranslateErr('')
+    try {
+      const ru = await translateText(summary, 'ru')
+      setSummaryRu(ru)
+      setShowRu(true)
+    } catch (e) {
+      setTranslateErr(e.message || 'Translation failed')
+    } finally {
+      setTranslating(false)
+    }
+  }
 
   // Copies the displayed (formatted) phone number to the clipboard so Mike
   // can paste it into another tool. The "Copied!" hint clears after 1.5s.
@@ -202,6 +233,37 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
                 </p>
               )}
             </div>
+          )}
+
+          {/* Call Summary — moved up here so the most-useful context (who
+              called, what they wanted) is the first thing under the phone.
+              Operator can flip the captured English summary to Russian on
+              demand; the translation is cached per call. */}
+          {summary && (
+            <Section
+              title="Call Summary"
+              action={
+                <button
+                  type="button"
+                  onClick={handleTranslateSummary}
+                  disabled={translating}
+                  className="text-[11px] font-semibold text-brand-700 dark:text-brand-300 hover:text-brand-800 dark:hover:text-brand-200 transition disabled:opacity-60 normal-case tracking-normal"
+                >
+                  {translating
+                    ? 'Translating…'
+                    : (showRu ? 'Show original' : '🇷🇺 Перевести')}
+                </button>
+              }
+            >
+              <p className="text-sm text-ink-strong dark:text-slate-200 leading-relaxed">
+                {showRu ? summaryRu : summary}
+              </p>
+              {translateErr && (
+                <p className="text-[11px] rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-2 py-1.5 mt-2">
+                  {translateErr}
+                </p>
+              )}
+            </Section>
           )}
 
           {/* Standalone Address block — taps open Google Maps (deep-links to
@@ -304,13 +366,6 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
                   <Icons.Microphone /> Load recording
                 </button>
               )}
-            </Section>
-          )}
-
-          {/* Summary */}
-          {summary && (
-            <Section title="Call Summary">
-              <p className="text-sm text-ink-strong dark:text-slate-200 leading-relaxed">{summary}</p>
             </Section>
           )}
 
