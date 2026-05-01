@@ -147,10 +147,39 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
     return e => setInv(i => ({ ...i, [field]: e.target.value }))
   }
 
+  // Group settings by concern so the modal isn't one tall scroll. Each tab
+  // owns one Section; the order is the operator's most-frequent → least.
+  const TABS = [
+    { key: 'vapi',     label: 'Receptionist' },
+    { key: 'twilio',   label: 'SMS reminders' },
+    { key: 'invoices', label: 'Invoices' },
+    { key: 'leads',    label: 'Lead intake' },
+  ]
+  const [activeTab, setActiveTab] = useState('vapi')
+
   return (
     <Modal title="Settings" onClose={onClose}>
+      <div className="-mx-1 mb-5 flex gap-1 overflow-x-auto pb-1 pt-px border-b border-slate-200 dark:border-slate-800">
+        {TABS.map(t => {
+          const active = activeTab === t.key
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveTab(t.key)}
+              className={`shrink-0 px-3 py-2 text-xs font-semibold rounded-t-lg border-b-2 -mb-px transition ${active
+                ? 'border-brand-500 text-brand-700 dark:text-brand-300'
+                : 'border-transparent text-ink-muted hover:text-ink-strong dark:text-slate-400 dark:hover:text-slate-200'}`}
+            >
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
       <div className="space-y-7">
         {/* Vapi */}
+        {activeTab === 'vapi' && (
         <Section
           title="Vapi API Key"
           subtitle="Powers the AI receptionist and pulls in your call list."
@@ -172,10 +201,10 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
             {vapiTesting ? 'Testing…' : (currentVapiKey ? 'Test & Replace' : 'Save & Connect')}
           </button>
         </Section>
-
-        <div className="border-t border-slate-200 dark:border-slate-800" />
+        )}
 
         {/* Twilio */}
+        {activeTab === 'twilio' && (
         <Section
           title="SMS Reminders (Twilio)"
           subtitle="Customers get a text 24 hours and 2 hours before their appointment. Leave blank to disable."
@@ -233,10 +262,10 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
             {twilioSaving ? 'Saving…' : 'Save SMS Settings'}
           </button>
         </Section>
-
-        <div className="border-t border-slate-200 dark:border-slate-800" />
+        )}
 
         {/* Invoices + Reviews */}
+        {activeTab === 'invoices' && (
         <Section
           title="Invoices & Reviews"
           subtitle="Business info shown on invoices, default tax rate, and the Google Business URL we send 4–5 star reviewers to."
@@ -407,13 +436,16 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
             {invSaving ? 'Saving…' : 'Save Invoice & Review Settings'}
           </button>
         </Section>
+        )}
 
+        {activeTab === 'leads' && (
         <Section
           title="Lead intake"
           subtitle="Wire your contact form (Forminator, Gravity Forms, etc.) to drop submissions into the Leads tab as a Waiting client."
         >
           <LeadIntakeRows secret={inv.lead_intake_secret} />
         </Section>
+        )}
       </div>
     </Modal>
   )
