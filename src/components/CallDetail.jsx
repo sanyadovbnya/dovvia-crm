@@ -126,9 +126,6 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
   const phonesDiffer = spoken && callerId && phoneDigits(spoken) !== phoneDigits(callerId)
   const primaryPhone = spoken || callerId
 
-  // Phone moved to the quick-contact strip; the Customer section only renders
-  // for the remaining fields (name, address, mismatched caller ID).
-  const hasCustomerInfo = o.customerName || o.customerAddress || phonesDiffer
   const hasApptInfo = o.serviceType || o.problem || o.appointmentDate || o.appointmentTime
 
   const name = o.customerName || callerId || 'Unknown Caller'
@@ -166,25 +163,59 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
 
         {/* Body */}
         <div className="px-5 py-5 flex flex-col gap-5">
-          {/* Quick contact — phone (click to copy) + green SMS bubble. */}
+          {/* Quick contact — phone (click to copy) + green SMS bubble.
+              When the spoken callback number differs from the caller ID we
+              show a small "Called from" note so the operator knows there
+              are two valid contact numbers in play. */}
           {primaryPhone && (
-            <div className="flex items-center justify-between gap-3 rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3">
-              <button
-                type="button"
-                onClick={() => handleCopyPhone(primaryPhone)}
-                title="Click to copy"
-                className="flex items-center gap-2 text-lg sm:text-xl font-bold text-ink-strong dark:text-slate-100 tabular-nums hover:text-brand-600 dark:hover:text-brand-400 transition min-w-0 text-left"
-              >
-                <span className="text-brand-500 dark:text-brand-400 shrink-0">
-                  {copiedPhone ? <Icons.Check /> : <Icons.Copy />}
-                </span>
-                <span className="truncate">{fmtPhone(primaryPhone)}</span>
-                {copiedPhone && (
-                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 normal-case tracking-normal">Copied!</span>
-                )}
-              </button>
-              <SmsButton phone={primaryPhone} body={smsBody} size="lg" label={`Text ${name}`} />
+            <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleCopyPhone(primaryPhone)}
+                  title="Click to copy"
+                  className="flex items-center gap-2 text-lg sm:text-xl font-bold text-ink-strong dark:text-slate-100 tabular-nums hover:text-brand-600 dark:hover:text-brand-400 transition min-w-0 text-left"
+                >
+                  <span className="text-brand-500 dark:text-brand-400 shrink-0">
+                    {copiedPhone ? <Icons.Check /> : <Icons.Copy />}
+                  </span>
+                  <span className="truncate">{fmtPhone(primaryPhone)}</span>
+                  {copiedPhone && (
+                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 normal-case tracking-normal">Copied!</span>
+                  )}
+                </button>
+                <SmsButton phone={primaryPhone} body={smsBody} size="lg" label={`Text ${name}`} />
+              </div>
+              {phonesDiffer && (
+                <p className="mt-1 text-[11px] text-ink-muted dark:text-slate-400 tabular-nums">
+                  Called from {fmtPhone(callerId)}
+                </p>
+              )}
             </div>
+          )}
+
+          {/* Standalone Address block — taps open Google Maps (deep-links to
+              the native Maps app on iOS/Android when installed). Hidden when
+              the call didn't capture an address. */}
+          {o.customerAddress && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.customerAddress)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open in Google Maps"
+              className="flex items-center gap-3 rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 hover:bg-slate-200/70 dark:hover:bg-slate-700/60 transition group"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-pastel-sky text-pastel-skyDeep dark:bg-blue-500/20 dark:text-blue-300 shrink-0">
+                <Icons.MapPin />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400">Address</p>
+                <p className="text-sm font-medium text-ink-strong dark:text-slate-100 truncate">{o.customerAddress}</p>
+              </div>
+              <span className="text-ink-faint dark:text-slate-500 shrink-0 group-hover:text-ink-muted dark:group-hover:text-slate-300 transition">
+                <Icons.ChevronRight />
+              </span>
+            </a>
           )}
 
           {/* Status row */}
@@ -227,17 +258,6 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
             onToggle={setResolutionOpen}
           />
 
-          {/* Customer Info — phone is shown big in the quick-contact strip
-              above, so we only repeat it here when the spoken callback
-              number differs from the caller ID and the operator should
-              notice both. */}
-          {hasCustomerInfo && (
-            <Section title="Customer">
-              <InfoRow label="Name"    value={o.customerName} />
-              {phonesDiffer && <InfoRow label="Called from" value={fmtPhone(callerId)} />}
-              <InfoRow label="Address" value={o.customerAddress} icon={<Icons.MapPin />} />
-            </Section>
-          )}
 
           {/* Appointment Details */}
           {hasApptInfo && (
