@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { fmtDate, fmtDuration, callDuration, parseTranscript, callOutputs, isWaiting } from '../utils/formatters'
 import { aiParseInvoice, buildInvoiceDraftFromCall, buildAIContextFromCall } from '../utils/invoices'
-import { phoneDigits } from '../utils/phone'
+import { phoneDigits, fmtPhone, telHref } from '../utils/phone'
+import { buildCallbackSms } from '../utils/sms'
 import { EndReasonBadge, AppointmentBadge } from './Badges'
 import { Icons } from './Icons'
 import ResolutionForm from './ResolutionForm'
 import ResolutionToggleButton from './ResolutionToggleButton'
+import SmsButton from './SmsButton'
 
 function Section({ title, children }) {
   return (
@@ -86,7 +88,7 @@ function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice, c
   )
 }
 
-export default function CallDetail({ call, resolution, onResolutionChange, onGenerateInvoice, onClose }) {
+export default function CallDetail({ call, resolution, onResolutionChange, onGenerateInvoice, onClose, shopName, ownerName }) {
   const [resolutionOpen, setResolutionOpen] = useState(false)
   const o = callOutputs(call)
   const summary = o.callSummary || call.analysis?.summary
@@ -98,12 +100,14 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
   const spoken = o.customerPhone
   const callerId = call.customer?.number
   const phonesDiffer = spoken && callerId && phoneDigits(spoken) !== phoneDigits(callerId)
+  const primaryPhone = spoken || callerId
 
   const hasCustomerInfo = o.customerName || spoken || o.customerAddress || callerId
   const hasApptInfo = o.serviceType || o.problem || o.appointmentDate || o.appointmentTime
 
   const name = o.customerName || callerId || 'Unknown Caller'
   const initial = name.charAt(0).toUpperCase()
+  const smsBody = buildCallbackSms({ call, shopName, ownerName })
 
   return (
     <>
@@ -136,6 +140,24 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
 
         {/* Body */}
         <div className="px-5 py-5 flex flex-col gap-5">
+          {/* Quick contact — big tappable phone + green SMS button.
+              Tapping the phone places a call (tel:), tapping the bubble
+              opens an SMS composer with a friendly callback template
+              pre-filled. Hidden when we don't have a number to dial. */}
+          {primaryPhone && (
+            <div className="flex items-center justify-between gap-3 rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3">
+              <a
+                href={telHref(primaryPhone) || `tel:${primaryPhone}`}
+                className="flex items-center gap-2 text-lg sm:text-xl font-bold text-ink-strong dark:text-slate-100 tabular-nums hover:text-brand-600 dark:hover:text-brand-400 transition min-w-0"
+                title={`Call ${fmtPhone(primaryPhone)}`}
+              >
+                <span className="text-brand-500 dark:text-brand-400 shrink-0"><Icons.Phone /></span>
+                <span className="truncate">{fmtPhone(primaryPhone)}</span>
+              </a>
+              <SmsButton phone={primaryPhone} body={smsBody} size="lg" label={`Text ${name}`} />
+            </div>
+          )}
+
           {/* Status row */}
           <div className="flex gap-2 flex-wrap items-center">
             <EndReasonBadge reason={call.endedReason} />

@@ -11,3 +11,13 @@ export function fmtPhone(raw) {
   if (!d) return raw || '—'
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
 }
+
+// Returns a tel: href that's safe for click-to-call, or null when the
+// input doesn't have enough digits to dial. Bare 10-digit numbers are
+// assumed to be US/CA and prefixed with +1.
+export function telHref(raw) {
+  const d = phoneDigits(raw)
+  if (!d) return null
+  const num = d.length === 10 ? `+1${d}` : `+${d}`
+  return `tel:${num}`
+}

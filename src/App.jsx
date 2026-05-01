@@ -9,6 +9,7 @@ import { fetchReviews, reviewStats } from './utils/reviews'
 import { fetchResolutions, indexResolutions } from './utils/resolutions'
 import { getSession, onAuthChange, logout } from './utils/auth'
 import { loadVapiKey, saveVapiKey, loadProfile } from './utils/profile'
+import { ownerFirstName } from './utils/sms'
 import LoginScreen from './components/LoginScreen'
 import RegisterScreen from './components/RegisterScreen'
 import ForgotPasswordScreen from './components/ForgotPasswordScreen'
@@ -56,6 +57,11 @@ function Dashboard({ session, onLogout }) {
 
   const userMeta = session?.user?.user_metadata || {}
   const [shopName, setShopName] = useState('')
+
+  // Owner first name powers SMS template ("Hi! This is Mike from …").
+  // Derived from auth metadata when present, otherwise sniffed from
+  // shopName ("Mike's Repair Shop" → "Mike").
+  const ownerName = ownerFirstName({ shopName, user: session?.user })
 
   // Pull the shop name from the profile (Settings → Shop name) so the
   // sidebar shows the live business name, not whatever was typed at signup.
@@ -389,6 +395,8 @@ function Dashboard({ session, onLogout }) {
                         resolution={resolutions[call.id]}
                         active={selected?.id === call.id}
                         onClick={() => setSelected(selected?.id === call.id ? null : call)}
+                        shopName={shopName}
+                        ownerName={ownerName}
                       />
                     ))}
                   </div>
@@ -446,6 +454,8 @@ function Dashboard({ session, onLogout }) {
           onResolutionChange={loadResolutions}
           onGenerateInvoice={generateInvoiceFor}
           onClose={() => setSelected(null)}
+          shopName={shopName}
+          ownerName={ownerName}
         />
       )}
     </Shell>
