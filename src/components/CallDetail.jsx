@@ -5,6 +5,7 @@ import { phoneDigits } from '../utils/phone'
 import { EndReasonBadge, AppointmentBadge } from './Badges'
 import { Icons } from './Icons'
 import ResolutionForm from './ResolutionForm'
+import ResolutionToggleButton from './ResolutionToggleButton'
 
 function Section({ title, children }) {
   return (
@@ -33,7 +34,7 @@ function InfoRow({ label, value, icon }) {
 }
 
 
-function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice }) {
+function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice, className = '' }) {
   const [busy, setBusy] = useState(false)
   const baseline = buildInvoiceDraftFromCall(call, outputs, resolution)
 
@@ -76,7 +77,7 @@ function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice })
       type="button"
       onClick={handleClick}
       disabled={busy}
-      className="btn-primary w-full"
+      className={`btn-primary w-full ${className}`}
     >
       {busy
         ? <><Icons.Spinner /> {aiWorthwhile ? 'Drafting with AI…' : 'Preparing…'}</>
@@ -86,6 +87,7 @@ function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice })
 }
 
 export default function CallDetail({ call, resolution, onResolutionChange, onGenerateInvoice, onClose }) {
+  const [resolutionOpen, setResolutionOpen] = useState(false)
   const o = callOutputs(call)
   const summary = o.callSummary || call.analysis?.summary
   const transcript = call.artifact?.transcript
@@ -146,21 +148,32 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
             )}
           </div>
 
-          {/* Quick actions */}
-          {onGenerateInvoice && (
-            <GenerateInvoiceButton
-              call={call}
-              outputs={o}
-              resolution={resolution}
-              onGenerateInvoice={onGenerateInvoice}
+          {/* Quick actions — Generate Invoice + Resolved share one row.
+              Body of the resolution form expands below when toggled. */}
+          <div className="flex gap-2">
+            {onGenerateInvoice && (
+              <GenerateInvoiceButton
+                call={call}
+                outputs={o}
+                resolution={resolution}
+                onGenerateInvoice={onGenerateInvoice}
+                className="flex-1"
+              />
+            )}
+            <ResolutionToggleButton
+              outcome={resolution?.outcome}
+              expanded={resolutionOpen}
+              onToggle={() => setResolutionOpen(o => !o)}
+              className="flex-1"
             />
-          )}
+          </div>
 
-          {/* Resolution */}
           <ResolutionForm
             callId={call.id}
             resolution={resolution}
             onSaved={onResolutionChange}
+            expanded={resolutionOpen}
+            onToggle={setResolutionOpen}
           />
 
           {/* Customer Info */}

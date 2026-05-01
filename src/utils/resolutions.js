@@ -5,9 +5,9 @@ import { getSession } from './auth'
 // have these three) and by leads (which prepend a 'waiting' state — see
 // LEAD_STATUSES in utils/leads.js). Tone strings map to .badge-* classes.
 export const OUTCOMES = {
-  didnt_work_out: { label: "Didn't work out", short: 'Lost',   tone: 'red' },
-  booked:         { label: 'Booked',          short: 'Booked', tone: 'green' },
-  done:           { label: 'Done',            short: 'Done',   tone: 'blue' },
+  didnt_work_out: { label: 'Lost',   short: 'Lost',   tone: 'red' },
+  booked:         { label: 'Booked', short: 'Booked', tone: 'green' },
+  done:           { label: 'Done',   short: 'Done',   tone: 'blue' },
 }
 
 // Class strings used by the active outcome button across resolution forms.

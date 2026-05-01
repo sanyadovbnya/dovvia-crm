@@ -8,7 +8,7 @@ import { fetchInvoices, fmtUSD } from './utils/invoices'
 import { fetchReviews, reviewStats } from './utils/reviews'
 import { fetchResolutions, indexResolutions } from './utils/resolutions'
 import { getSession, onAuthChange, logout } from './utils/auth'
-import { loadVapiKey, saveVapiKey } from './utils/profile'
+import { loadVapiKey, saveVapiKey, loadProfile } from './utils/profile'
 import LoginScreen from './components/LoginScreen'
 import RegisterScreen from './components/RegisterScreen'
 import ForgotPasswordScreen from './components/ForgotPasswordScreen'
@@ -51,7 +51,21 @@ function Dashboard({ session, onLogout }) {
   }
 
   const userMeta = session?.user?.user_metadata || {}
-  const company = userMeta.company
+  const [shopName, setShopName] = useState('')
+
+  // Pull the shop name from the profile (Settings → Shop name) so the
+  // sidebar shows the live business name, not whatever was typed at signup.
+  // Falls back to the signup-time `company` if shop_name isn't set.
+  // Re-runs when the session user changes (login / token refresh that
+  // swaps users) so we never display the previous user's shop name.
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let active = true
+    loadProfile()
+      .then(p => { if (active) setShopName(p?.shop_name || userMeta.company || '') })
+      .catch(() => { if (active) setShopName(userMeta.company || '') })
+    return () => { active = false }
+  }, [session?.user?.id, userMeta.company])
 
   useEffect(() => {
     loadVapiKey().then(key => {
@@ -222,7 +236,7 @@ function Dashboard({ session, onLogout }) {
 
   return (
     <Shell
-      company={company}
+      company={shopName}
       tab={tab}
       setTab={setTab}
       onRefresh={loadCalls}

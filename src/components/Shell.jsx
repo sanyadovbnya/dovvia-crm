@@ -96,7 +96,7 @@ export default function Shell({
             <Icons.Wrench size={18} />
           </div>
           <div className="min-w-0">
-            <p className="font-bold text-ink-strong dark:text-slate-100 leading-tight">Dovvia</p>
+            <p className="font-bold text-ink-strong dark:text-slate-100 leading-tight">Dovvia CRM</p>
             {company && <p className="text-xs text-ink-muted dark:text-slate-400 truncate">{company}</p>}
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function Shell({
               <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white">
                 <Icons.Wrench size={16} />
               </div>
-              <p className="font-bold text-ink-strong dark:text-slate-100">Dovvia</p>
+              <p className="font-bold text-ink-strong dark:text-slate-100">Dovvia CRM</p>
             </div>
 
             <div className="hidden lg:block">

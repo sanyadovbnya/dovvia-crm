@@ -6,6 +6,7 @@ import { fmtPhone } from '../utils/phone'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 import LeadResolutionForm from './LeadResolutionForm'
+import ResolutionToggleButton from './ResolutionToggleButton'
 
 function fmtRelative(iso) {
   if (!iso) return '—'
@@ -63,6 +64,7 @@ function LeadRow({ lead, active, onClick }) {
 }
 
 function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
+  const [resolutionOpen, setResolutionOpen] = useState(false)
   const initial = (lead.name || lead.email || '?').charAt(0).toUpperCase()
 
   async function handleDelete() {
@@ -72,6 +74,16 @@ function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
       onDeleted?.()
     } catch (e) {
       alert(e.message || 'Delete failed')
+    }
+  }
+
+  async function handleSpam() {
+    if (!confirm('Mark this lead as spam? It will be removed from your CRM.')) return
+    try {
+      await deleteLead(lead.id)
+      onDeleted?.()
+    } catch (e) {
+      alert(e.message || 'Failed to remove lead')
     }
   }
 
@@ -117,8 +129,31 @@ function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
             </div>
           )}
 
-          {/* Resolution */}
-          <LeadResolutionForm lead={lead} appointment={appointment} onSaved={onChanged} />
+          {/* Resolution toolbar — Mark Resolved + Spam on one row. */}
+          <div className="flex items-stretch gap-2">
+            <ResolutionToggleButton
+              outcome={lead.status}
+              expanded={resolutionOpen}
+              onToggle={() => setResolutionOpen(o => !o)}
+              className="flex-1"
+            />
+            <button
+              type="button"
+              onClick={handleSpam}
+              className="inline-flex items-center gap-1 rounded-xl bg-pastel-peach hover:bg-orange-200 text-pastel-peachDeep dark:bg-orange-500/15 dark:hover:bg-orange-500/25 dark:text-orange-300 font-semibold px-3 text-xs uppercase tracking-wide shrink-0"
+              title="Mark this lead as spam and remove it"
+            >
+              <Icons.AlertTriangle /> Spam
+            </button>
+          </div>
+
+          <LeadResolutionForm
+            lead={lead}
+            appointment={appointment}
+            onSaved={onChanged}
+            expanded={resolutionOpen}
+            onToggle={setResolutionOpen}
+          />
 
           {/* Danger zone */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800">

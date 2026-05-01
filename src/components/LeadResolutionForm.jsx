@@ -3,7 +3,7 @@ import { LEAD_STATUSES, resolveLead, updateLead, aiParseLeadBooking } from '../u
 import { supabase } from '../lib/supabase'
 import { getSession } from '../utils/auth'
 import {
-  OUTCOME_ACTIVE_BTN_CLASS,
+  OUTCOMES, OUTCOME_ACTIVE_BTN_CLASS,
   parseAmountToCents, fmtCents, dollarsFromCents,
 } from '../utils/resolutions'
 import { Icons } from './Icons'
@@ -15,8 +15,13 @@ function timeOnly(t) {
   return t.split(':').slice(0, 2).join(':')
 }
 
-export default function LeadResolutionForm({ lead, appointment, onSaved }) {
+export default function LeadResolutionForm({ lead, appointment, onSaved, onSpam, expanded: expandedProp, onToggle }) {
   const isResolved = lead.status && lead.status !== 'waiting'
+  // Allow parent control so the toggle button can sit alongside other actions.
+  const [expandedSelf, setExpandedSelf] = useState(false)
+  const isControlled = expandedProp !== undefined
+  const expanded = isControlled ? expandedProp : expandedSelf
+  const setExpanded = isControlled ? (v => onToggle?.(typeof v === 'function' ? v(expanded) : v)) : setExpandedSelf
   const [editing, setEditing] = useState(!isResolved)
   const [outcome, setOutcome] = useState(isResolved ? lead.status : 'booked')
   const [date, setDate] = useState(appointment?.date || '')
@@ -110,50 +115,55 @@ export default function LeadResolutionForm({ lead, appointment, onSaved }) {
     }
   }
 
-  // Read-only summary view
-  if (!editing && isResolved) {
+  // Header label tracks the current state.
+  const showSummary = !editing && isResolved
+  const headerLabel = showSummary
+    ? 'Resolution'
+    : (isResolved ? 'Edit Resolution' : 'Mark as Resolved')
+  const headerMeta = showSummary ? LEAD_STATUSES[lead.status] : null
+
+  // The summary block — extracted so the same collapsible wrapper can render
+  // either it or the editor below.
+  function renderSummary() {
     const meta = LEAD_STATUSES[lead.status]
     return (
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-2">Resolution</p>
-        <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`badge badge-${meta?.tone || 'gray'}`}>✓ {meta?.label || lead.status}</span>
-            {lead.status === 'done' && lead.amount_cents != null && (
-              <span className="text-sm font-semibold text-ink-strong dark:text-slate-100">{fmtCents(lead.amount_cents)}</span>
-            )}
-          </div>
+      <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`badge badge-${meta?.tone || 'gray'}`}>✓ {meta?.label || lead.status}</span>
+          {lead.status === 'done' && lead.amount_cents != null && (
+            <span className="text-sm font-semibold text-ink-strong dark:text-slate-100">{fmtCents(lead.amount_cents)}</span>
+          )}
+        </div>
 
-          {lead.status === 'booked' && appointment && (
-            <p className="text-sm text-ink-strong dark:text-slate-200">
-              <span className="text-ink-muted dark:text-slate-400">When: </span>
-              {appointment.date} at {timeOnly(appointment.time_start)}
-              {appointment.service_type && ` · ${appointment.service_type}`}
-            </p>
-          )}
-          {lead.status === 'booked' && !appointment && lead.booked_for && (
-            <p className="text-sm text-ink-strong dark:text-slate-200">
-              <span className="text-ink-muted dark:text-slate-400">When: </span>{lead.booked_for}
-            </p>
-          )}
-          {lead.status === 'booked' && !appointment && !lead.booked_for && (
-            <p className="text-sm italic text-ink-muted dark:text-slate-400">Flexible — no slot scheduled yet</p>
-          )}
-          {lead.status === 'done' && lead.work_description && (
-            <p className="text-sm text-ink-strong dark:text-slate-200">
-              <span className="text-ink-muted dark:text-slate-400">Work: </span>{lead.work_description}
-            </p>
-          )}
-          {lead.notes && (
-            <p className="text-sm text-ink-strong dark:text-slate-200">
-              <span className="text-ink-muted dark:text-slate-400">Notes: </span>{lead.notes}
-            </p>
-          )}
+        {lead.status === 'booked' && appointment && (
+          <p className="text-sm text-ink-strong dark:text-slate-200">
+            <span className="text-ink-muted dark:text-slate-400">When: </span>
+            {appointment.date} at {timeOnly(appointment.time_start)}
+            {appointment.service_type && ` · ${appointment.service_type}`}
+          </p>
+        )}
+        {lead.status === 'booked' && !appointment && lead.booked_for && (
+          <p className="text-sm text-ink-strong dark:text-slate-200">
+            <span className="text-ink-muted dark:text-slate-400">When: </span>{lead.booked_for}
+          </p>
+        )}
+        {lead.status === 'booked' && !appointment && !lead.booked_for && (
+          <p className="text-sm italic text-ink-muted dark:text-slate-400">Flexible — no slot scheduled yet</p>
+        )}
+        {lead.status === 'done' && lead.work_description && (
+          <p className="text-sm text-ink-strong dark:text-slate-200">
+            <span className="text-ink-muted dark:text-slate-400">Work: </span>{lead.work_description}
+          </p>
+        )}
+        {lead.notes && (
+          <p className="text-sm text-ink-strong dark:text-slate-200">
+            <span className="text-ink-muted dark:text-slate-400">Notes: </span>{lead.notes}
+          </p>
+        )}
 
-          <div className="flex gap-2 pt-1">
-            <button onClick={() => setEditing(true)} className="btn-ghost text-xs !py-1.5">Edit</button>
-            <button onClick={handleReopen} disabled={saving} className="btn-ghost text-xs !py-1.5">Move to Waiting</button>
-          </div>
+        <div className="flex gap-2 pt-1">
+          <button onClick={() => setEditing(true)} className="btn-ghost text-xs !py-1.5">Edit</button>
+          <button onClick={handleReopen} disabled={saving} className="btn-ghost text-xs !py-1.5">Move to Waiting</button>
         </div>
       </div>
     )
@@ -161,16 +171,40 @@ export default function LeadResolutionForm({ lead, appointment, onSaved }) {
 
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400 mb-2">
-        {isResolved ? 'Edit Resolution' : 'Mark as Resolved'}
-      </p>
+      {!isControlled && (
+        <div className="flex items-stretch gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => setExpanded(e => !e)}
+            className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-4 py-2.5 text-sm transition shadow-card"
+            aria-expanded={expanded}
+          >
+            <Icons.Check />
+            {headerLabel}
+            {headerMeta && (
+              <span className="text-xs font-medium opacity-90">· {headerMeta.short}</span>
+            )}
+          </button>
+          {onSpam && (
+            <button
+              type="button"
+              onClick={onSpam}
+              className="inline-flex items-center gap-1 rounded-xl bg-pastel-peach hover:bg-orange-200 text-pastel-peachDeep dark:bg-orange-500/15 dark:hover:bg-orange-500/25 dark:text-orange-300 font-semibold px-3 text-xs uppercase tracking-wide shrink-0"
+              title="Mark this lead as spam and remove it"
+            >
+              <Icons.AlertTriangle /> Spam
+            </button>
+          )}
+        </div>
+      )}
+
+      {expanded && showSummary && renderSummary()}
+
+      {expanded && !showSummary && (
       <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-3">
         <div className="grid grid-cols-3 gap-2">
-          {[
-            ['didnt_work_out', "Didn't work out"],
-            ['booked',         'Booked'],
-            ['done',           'Done'],
-          ].map(([key, label]) => {
+          {Object.entries(OUTCOMES).map(([key, meta]) => {
+            const label = meta.label
             const active = outcome === key
             return (
               <button
@@ -293,6 +327,7 @@ export default function LeadResolutionForm({ lead, appointment, onSaved }) {
           )}
         </div>
       </div>
+      )}
     </div>
   )
 }
