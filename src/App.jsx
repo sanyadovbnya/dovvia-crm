@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { fetchCalls } from './api/vapi'
+import { readCallsCache, writeCallsCache, mergeCalls, INCREMENTAL_OVERLAP_MS } from './utils/callsCache'
 import { fmtDuration, callDuration, isBooked, isWaiting, callOutputs } from './utils/formatters'
 import { upsertAppointmentsFromCalls } from './utils/appointments'
 import { fetchAllAppointments, groupIntoCustomers } from './utils/customers'
@@ -34,7 +35,10 @@ import { Icons } from './components/Icons'
 function Dashboard({ session, onLogout }) {
   const [apiKey, setApiKey] = useState('')
   const [keyLoading, setKeyLoading] = useState(true)
-  const [calls, setCalls] = useState([])
+  // Hydrate the calls list from localStorage synchronously so the dashboard
+  // paints something useful before any network call lands. The background
+  // fetch in loadCalls then catches new calls and any in-flight updates.
+  const [calls, setCalls] = useState(() => readCallsCache(session?.user?.id)?.calls || [])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
@@ -89,15 +93,35 @@ function Dashboard({ session, onLogout }) {
     setLoading(true)
     setError('')
     try {
-      const data = await fetchCalls(apiKey, { limit: 100 })
-      setCalls(data)
-      upsertAppointmentsFromCalls(data)
+      const userId = session?.user?.id
+      const cached = readCallsCache(userId)?.calls || []
+      // If we already have cached calls, only fetch a recent window —
+      // covers new calls plus any in-flight updates from the past few
+      // hours. Otherwise (cold start) fetch a fuller page.
+      let params
+      if (cached.length > 0) {
+        const newestMs = new Date(cached[0].createdAt || 0).getTime()
+        const fromMs = newestMs - INCREMENTAL_OVERLAP_MS
+        params = { limit: 50, createdAtGt: new Date(fromMs).toISOString() }
+      } else {
+        params = { limit: 50 }
+      }
+      const fresh = await fetchCalls(apiKey, params)
+      const merged = mergeCalls(fresh, cached)
+      setCalls(merged)
+      writeCallsCache(userId, merged)
+      // Only the freshly-fetched calls need to be upserted into the
+      // appointments table — older ones were already handled on previous
+      // sessions.
+      upsertAppointmentsFromCalls(fresh)
     } catch (e) {
+      // Keep showing whatever we already have (cache + last good fetch);
+      // surface the failure as a soft error in the existing banner.
       setError(e.message || 'Failed to load calls.')
     } finally {
       setLoading(false)
     }
-  }, [apiKey])
+  }, [apiKey, session?.user?.id])
 
   useEffect(() => { loadCalls() }, [loadCalls])
 
@@ -110,16 +134,26 @@ function Dashboard({ session, onLogout }) {
 
   useEffect(() => { if (apiKey) loadResolutions() }, [apiKey, loadResolutions])
 
+  // Per-tab "already loaded this session" set so that hopping between
+  // tabs doesn't re-hit Supabase for data we've already pulled. The
+  // Refresh button is the explicit way to bypass this cache.
+  const tabsLoadedRef = useRef(new Set())
   useEffect(() => {
     if (!apiKey) return
-    if (tab === 'schedule' || tab === 'customers') {
-      fetchAllAppointments().then(setAppointments).catch(() => {})
+    if ((tab === 'schedule' || tab === 'customers') && !tabsLoadedRef.current.has('appointments')) {
+      fetchAllAppointments()
+        .then(a => { setAppointments(a); tabsLoadedRef.current.add('appointments') })
+        .catch(() => {})
     }
-    if (tab === 'invoices') {
-      fetchInvoices().then(setInvoices).catch(() => {})
+    if (tab === 'invoices' && !tabsLoadedRef.current.has('invoices')) {
+      fetchInvoices()
+        .then(v => { setInvoices(v); tabsLoadedRef.current.add('invoices') })
+        .catch(() => {})
     }
-    if (tab === 'reviews') {
-      fetchReviews().then(setReviews).catch(() => {})
+    if (tab === 'reviews' && !tabsLoadedRef.current.has('reviews')) {
+      fetchReviews()
+        .then(r => { setReviews(r); tabsLoadedRef.current.add('reviews') })
+        .catch(() => {})
     }
   }, [apiKey, tab])
 
@@ -278,12 +312,22 @@ function Dashboard({ session, onLogout }) {
   const callsPageData = paginate(filtered, callsPage)
   const callDayGroups = groupByDay(callsPageData.items, c => c.createdAt)
 
+  // Refresh button: always re-syncs calls + clears the tab dedup so the
+  // current tab's auxiliary data refetches on next render.
+  function handleRefresh() {
+    tabsLoadedRef.current.clear()
+    loadCalls()
+    if (tab === 'schedule' || tab === 'customers') fetchAllAppointments().then(setAppointments).catch(() => {})
+    if (tab === 'invoices') fetchInvoices().then(setInvoices).catch(() => {})
+    if (tab === 'reviews') fetchReviews().then(setReviews).catch(() => {})
+  }
+
   return (
     <Shell
       company={shopName}
       tab={tab}
       setTab={setTab}
-      onRefresh={loadCalls}
+      onRefresh={handleRefresh}
       loading={loading}
       onOpenSettings={() => setShowSettings(true)}
       onLogout={onLogout}
