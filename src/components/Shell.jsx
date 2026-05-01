@@ -114,7 +114,7 @@ export default function Shell({
             onClick={toggle}
           />
           <NavItem label="Settings" icon={<Icons.Settings />} onClick={onOpenSettings} />
-          <NavItem label="Sign out" icon={<Icons.User />} onClick={onLogout} />
+          <NavItem label="Sign out" icon={<Icons.LogOut />} onClick={onLogout} />
         </div>
       </aside>
 
@@ -136,18 +136,18 @@ export default function Shell({
             </div>
 
             <div className="flex items-center gap-2">
-              <button onClick={onRefresh} className="btn-ghost" title="Refresh">
+              <button onClick={onRefresh} className="btn-ghost text-emerald-600 dark:text-emerald-400" title="Refresh">
                 <span className={loading ? 'spinner' : ''}><Icons.Refresh /></span>
                 <span className="hidden sm:inline">{loading ? 'Loading…' : 'Refresh'}</span>
               </button>
-              <button onClick={toggle} className="btn-ghost lg:hidden" title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+              <button onClick={toggle} className="btn-ghost lg:hidden text-slate-900 dark:text-white" title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
                 {theme === 'dark' ? <Icons.Sun /> : <Icons.Moon />}
               </button>
-              <button onClick={onOpenSettings} className="btn-ghost lg:hidden" title="Settings">
+              <button onClick={onOpenSettings} className="btn-ghost lg:hidden text-blue-600 dark:text-blue-400" title="Settings">
                 <Icons.Settings />
               </button>
-              <button onClick={onLogout} className="btn-ghost lg:hidden" title="Sign out">
-                <Icons.User />
+              <button onClick={onLogout} className="btn-ghost lg:hidden text-rose-600 dark:text-rose-400" title="Sign out">
+                <Icons.LogOut />
               </button>
             </div>
           </div>
