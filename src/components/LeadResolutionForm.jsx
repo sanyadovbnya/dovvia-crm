@@ -7,6 +7,7 @@ import {
   parseAmountToCents, fmtCents, dollarsFromCents,
 } from '../utils/resolutions'
 import { Icons } from './Icons'
+import PanelCloseButton from './PanelCloseButton'
 
 // Pulls the time portion out of "HH:MM:SS" appointment value back to the
 // HH:MM string the <input type="time"> control wants.
@@ -128,6 +129,7 @@ export default function LeadResolutionForm({ lead, appointment, onSaved, onSpam,
     const meta = LEAD_STATUSES[lead.status]
     return (
       <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-2">
+        <PanelCloseButton onClick={() => setExpanded(false)} />
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`badge badge-${meta?.tone || 'gray'}`}>✓ {meta?.label || lead.status}</span>
           {lead.status === 'done' && lead.amount_cents != null && (
@@ -202,6 +204,7 @@ export default function LeadResolutionForm({ lead, appointment, onSaved, onSpam,
 
       {expanded && !showSummary && (
       <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-3">
+        <PanelCloseButton onClick={() => setExpanded(false)} />
         <div className="grid grid-cols-3 gap-2">
           {Object.entries(OUTCOMES).map(([key, meta]) => {
             const label = meta.label
