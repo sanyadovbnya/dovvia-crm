@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { fmtDate, fmtDuration, callDuration, parseTranscript, callOutputs, isWaiting } from '../utils/formatters'
 import { aiParseInvoice, buildInvoiceDraftFromCall, buildAIContextFromCall } from '../utils/invoices'
-import { phoneDigits, fmtPhone, telHref } from '../utils/phone'
+import { phoneDigits, fmtPhone } from '../utils/phone'
 import { buildCallbackSms } from '../utils/sms'
 import { EndReasonBadge, AppointmentBadge } from './Badges'
 import { Icons } from './Icons'
@@ -90,6 +90,20 @@ function GenerateInvoiceButton({ call, outputs, resolution, onGenerateInvoice, c
 
 export default function CallDetail({ call, resolution, onResolutionChange, onGenerateInvoice, onClose, shopName, ownerName }) {
   const [resolutionOpen, setResolutionOpen] = useState(false)
+  const [copiedPhone, setCopiedPhone] = useState(false)
+
+  // Copies the displayed (formatted) phone number to the clipboard so Mike
+  // can paste it into another tool. The "Copied!" hint clears after 1.5s.
+  async function handleCopyPhone(phone) {
+    try {
+      await navigator.clipboard.writeText(fmtPhone(phone))
+      setCopiedPhone(true)
+      setTimeout(() => setCopiedPhone(false), 1500)
+    } catch {
+      // clipboard API blocked — fail silently; the number is still visible
+    }
+  }
+
   const o = callOutputs(call)
   const summary = o.callSummary || call.analysis?.summary
   const transcript = call.artifact?.transcript
@@ -142,20 +156,23 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
 
         {/* Body */}
         <div className="px-5 py-5 flex flex-col gap-5">
-          {/* Quick contact — big tappable phone + green SMS button.
-              Tapping the phone places a call (tel:), tapping the bubble
-              opens an SMS composer with a friendly callback template
-              pre-filled. Hidden when we don't have a number to dial. */}
+          {/* Quick contact — phone (click to copy) + green SMS bubble. */}
           {primaryPhone && (
             <div className="flex items-center justify-between gap-3 rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3">
-              <a
-                href={telHref(primaryPhone) || `tel:${primaryPhone}`}
-                className="flex items-center gap-2 text-lg sm:text-xl font-bold text-ink-strong dark:text-slate-100 tabular-nums hover:text-brand-600 dark:hover:text-brand-400 transition min-w-0"
-                title={`Call ${fmtPhone(primaryPhone)}`}
+              <button
+                type="button"
+                onClick={() => handleCopyPhone(primaryPhone)}
+                title="Click to copy"
+                className="flex items-center gap-2 text-lg sm:text-xl font-bold text-ink-strong dark:text-slate-100 tabular-nums hover:text-brand-600 dark:hover:text-brand-400 transition min-w-0 text-left"
               >
-                <span className="text-brand-500 dark:text-brand-400 shrink-0"><Icons.Phone /></span>
+                <span className="text-brand-500 dark:text-brand-400 shrink-0">
+                  {copiedPhone ? <Icons.Check /> : <Icons.Copy />}
+                </span>
                 <span className="truncate">{fmtPhone(primaryPhone)}</span>
-              </a>
+                {copiedPhone && (
+                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 normal-case tracking-normal">Copied!</span>
+                )}
+              </button>
               <SmsButton phone={primaryPhone} body={smsBody} size="lg" label={`Text ${name}`} />
             </div>
           )}
@@ -191,16 +208,6 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
               className="flex-1"
             />
           </div>
-
-          {/* Full-width Message action — quickest way to follow up with a
-              caller without scrolling back up to the quick-contact strip. */}
-          <SmsButton
-            phone={primaryPhone}
-            body={smsBody}
-            size="block"
-            label="Send message"
-            showLabel
-          />
 
           <ResolutionForm
             callId={call.id}
