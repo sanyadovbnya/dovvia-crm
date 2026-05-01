@@ -174,22 +174,22 @@ function Dashboard({ session, onLogout }) {
   const callsCards = (
     <>
       <StatCard
-        label="Total Calls" value={calls.length} sub="all time" tone="lavender" icon={<Icons.Phone />}
+        label="Total Calls" value={calls.length} tone="lavender" icon={<Icons.Phone />}
         title="Show all calls"
         onClick={() => { setCallsFilter('all'); setSearch(''); setCallsPage(1) }}
       />
       <StatCard
-        label="Today" value={todayCalls.length} sub="calls today" tone="sky" icon={<Icons.Microphone />}
+        label="Today" value={todayCalls.length} tone="sky" icon={<Icons.Microphone />}
         title="Jump to today's calls"
         onClick={jumpToCallsToday}
       />
       <StatCard
-        label="Appointments" value={bookedCalls.length} sub="booked total" tone="mint" icon={<Icons.Calendar />}
+        label="Appointments" value={bookedCalls.length} tone="mint" icon={<Icons.Calendar />}
         title="Show booked calls"
         onClick={() => { setCallsFilter('booked'); setCallsPage(1) }}
       />
       <StatCard
-        label="Waiting" value={waitingCalls.length} sub="want a callback" tone="peach" icon={<Icons.Clock />}
+        label="Waiting" value={waitingCalls.length} tone="peach" icon={<Icons.Clock />}
         title="Show waiting callers"
         onClick={() => { setCallsFilter('waiting'); setCallsPage(1) }}
       />

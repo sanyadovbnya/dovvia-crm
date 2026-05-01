@@ -102,7 +102,9 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
   const phonesDiffer = spoken && callerId && phoneDigits(spoken) !== phoneDigits(callerId)
   const primaryPhone = spoken || callerId
 
-  const hasCustomerInfo = o.customerName || spoken || o.customerAddress || callerId
+  // Phone moved to the quick-contact strip; the Customer section only renders
+  // for the remaining fields (name, address, mismatched caller ID).
+  const hasCustomerInfo = o.customerName || o.customerAddress || phonesDiffer
   const hasApptInfo = o.serviceType || o.problem || o.appointmentDate || o.appointmentTime
 
   const name = o.customerName || callerId || 'Unknown Caller'
@@ -190,6 +192,16 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
             />
           </div>
 
+          {/* Full-width Message action — quickest way to follow up with a
+              caller without scrolling back up to the quick-contact strip. */}
+          <SmsButton
+            phone={primaryPhone}
+            body={smsBody}
+            size="block"
+            label="Send message"
+            showLabel
+          />
+
           <ResolutionForm
             callId={call.id}
             resolution={resolution}
@@ -198,12 +210,14 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
             onToggle={setResolutionOpen}
           />
 
-          {/* Customer Info */}
+          {/* Customer Info — phone is shown big in the quick-contact strip
+              above, so we only repeat it here when the spoken callback
+              number differs from the caller ID and the operator should
+              notice both. */}
           {hasCustomerInfo && (
             <Section title="Customer">
               <InfoRow label="Name"    value={o.customerName} />
-              <InfoRow label={phonesDiffer ? 'Callback' : 'Phone'} value={spoken || callerId} />
-              {phonesDiffer && <InfoRow label="Called from" value={callerId} />}
+              {phonesDiffer && <InfoRow label="Called from" value={fmtPhone(callerId)} />}
               <InfoRow label="Address" value={o.customerAddress} icon={<Icons.MapPin />} />
             </Section>
           )}

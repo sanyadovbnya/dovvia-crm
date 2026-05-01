@@ -83,7 +83,7 @@ export default function CallRow({ call, resolution, active, onClick, shopName, o
           </p>
         </div>
 
-        <SmsButton phone={phoneShown} body={smsBody} size="sm" label={`Text ${name}`} />
+        <SmsButton phone={phoneShown} body={smsBody} size="row" label={`Text ${name}`} />
       </div>
     </div>
   )

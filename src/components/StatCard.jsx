@@ -9,20 +9,23 @@ const TONES = {
 
 // When `onClick` is supplied the card renders as a button with hover/focus
 // affordances. Otherwise it stays a plain div so non-interactive stats don't
-// look clickable.
+// look clickable. Padding tightens when there's no sub so the 2-line variant
+// (label + value) doesn't carry empty vertical space.
 export default function StatCard({ label, value, sub, tone = 'brand', icon, onClick, title }) {
   const t = TONES[tone] || TONES.brand
   const interactive = typeof onClick === 'function'
-  const base = `rounded-xl2 p-3.5 shadow-card dark:shadow-none dark:ring-1 dark:ring-slate-800 ${t.surface}`
+  const padding = sub ? 'p-3.5' : 'p-3'
+  const base = `rounded-xl2 ${padding} shadow-card dark:shadow-none dark:ring-1 dark:ring-slate-800 ${t.surface}`
   const interactiveCx = 'text-left w-full transition hover:-translate-y-0.5 hover:shadow-pop active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 cursor-pointer'
+  const iconBox = sub ? 'h-8 w-8' : 'h-7 w-7'
   const inner = (
-    <div className="flex items-start justify-between gap-2">
+    <div className="flex items-center justify-between gap-2">
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted dark:text-slate-400">{label}</p>
-        <p className="mt-1 text-xl sm:text-2xl font-bold text-ink-strong dark:text-slate-100 leading-none">{value}</p>
+        <p className="mt-0.5 text-lg sm:text-xl font-bold text-ink-strong dark:text-slate-100 leading-none">{value}</p>
         {sub && <p className="mt-1 text-[11px] text-ink-muted dark:text-slate-400 truncate">{sub}</p>}
       </div>
-      <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${t.accent} ${t.icon} shrink-0`}>
+      <div className={`flex ${iconBox} items-center justify-center rounded-xl ${t.accent} ${t.icon} shrink-0`}>
         {icon}
       </div>
     </div>
