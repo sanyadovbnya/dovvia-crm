@@ -45,12 +45,15 @@ create policy leads_owner_all on public.leads
 
 -- Per-user shared secret used by the intake-lead edge function to resolve the
 -- tenant from a webhook header. Backfilled with random hex for existing rows.
+-- Uses gen_random_uuid() (built-in since Postgres 13) instead of
+-- pgcrypto's gen_random_bytes so this migration runs on any project
+-- regardless of whether the pgcrypto extension is in the search_path.
 alter table public.profiles
   add column if not exists lead_intake_secret text
-    default encode(gen_random_bytes(16), 'hex');
+    default replace(gen_random_uuid()::text, '-', '');
 
 update public.profiles
-  set lead_intake_secret = encode(gen_random_bytes(16), 'hex')
+  set lead_intake_secret = replace(gen_random_uuid()::text, '-', '')
   where lead_intake_secret is null;
 
 alter table public.profiles

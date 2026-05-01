@@ -15,14 +15,17 @@
 
 -- ─── Per-tenant webhook secret ─────────────────────────────────────────
 -- Mirrors lead_intake_secret: random 32-char hex, generated automatically
--- for new profiles, rotatable from Settings.
+-- for new profiles, rotatable from Settings. Uses gen_random_uuid() (built
+-- in to Postgres 13+) instead of pgcrypto's gen_random_bytes so the
+-- migration is portable across Supabase projects regardless of extension
+-- search_path quirks.
 alter table public.profiles
   add column if not exists vapi_webhook_secret text
-    default encode(gen_random_bytes(16), 'hex');
+    default replace(gen_random_uuid()::text, '-', '');
 
 -- Backfill any existing profiles that pre-date this column.
 update public.profiles
-   set vapi_webhook_secret = encode(gen_random_bytes(16), 'hex')
+   set vapi_webhook_secret = replace(gen_random_uuid()::text, '-', '')
  where vapi_webhook_secret is null;
 
 alter table public.profiles
