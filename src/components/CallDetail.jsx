@@ -149,8 +149,8 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
               )}
             </div>
           </div>
-          <button onClick={onClose} className="btn-ghost !p-2">
-            <Icons.X />
+          <button onClick={onClose} aria-label="Close" className="btn-ghost !p-2.5 h-11 w-11 shrink-0">
+            <Icons.X size={24} />
           </button>
         </header>
 
