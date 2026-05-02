@@ -56,10 +56,18 @@ export function rowToCall(row) {
 
 // Fetches the most-recent N calls for the current user. The dashboard
 // renders 50 at a time and paginates locally.
+//
+// We sort by updated_at (always populated by every upsert) instead of
+// started_at because Vapi sometimes delivers a partial event before the
+// end-of-call-report — those rows have null started_at and would get
+// nulls-last sorted off the visible page. updated_at represents "when
+// did we last hear about this call" which is the right recency signal
+// for the dashboard either way.
 export async function fetchCallsFromDb({ limit = 200 } = {}) {
   const { data, error } = await supabase
     .from('calls')
     .select('*')
+    .order('updated_at', { ascending: false })
     .order('started_at', { ascending: false, nullsFirst: false })
     .limit(limit)
   if (error) throw new Error(error.message)

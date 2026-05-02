@@ -44,13 +44,36 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
-// Vapi wraps payloads in { message: { type, call, ... } }. Some older
-// integrations posted the call object at the top level. Accept both.
+// Vapi wraps payloads in { message: { type, call, ...runtimeFields } }.
+// Some older integrations posted the call object at the top level.
+//
+// IMPORTANT: on end-of-call-report Vapi puts the runtime fields
+// (endedAt, endedReason, transcript, analysis, recordingUrl, artifact)
+// at MESSAGE level, NOT inside message.call. message.call only carries
+// the call's static metadata (id, customer, phoneNumberId, etc.). If we
+// returned message.call directly we'd land all the interesting fields
+// as null. Merge message-level runtime fields onto the call object so
+// buildRow finds them where it expects, preferring any value that's
+// already on call (just in case a future Vapi version puts them there).
 function extractCallObject(body: any): any {
   if (!body) return null
-  if (body.message?.call) return body.message.call
-  if (body.call)          return body.call
-  if (body.id)            return body  // raw call object
+  const m = body.message
+  if (m?.call) {
+    return {
+      ...m.call,
+      startedAt:    m.call.startedAt    ?? m.startedAt    ?? null,
+      endedAt:      m.call.endedAt      ?? m.endedAt      ?? null,
+      endedReason:  m.call.endedReason  ?? m.endedReason  ?? null,
+      analysis:     m.call.analysis     ?? m.analysis     ?? null,
+      artifact:     m.call.artifact     ?? m.artifact     ?? null,
+      transcript:   m.call.transcript   ?? m.transcript   ?? null,
+      recordingUrl: m.call.recordingUrl ?? m.recordingUrl ?? null,
+      structuredOutputs:
+        m.call.structuredOutputs ?? m.structuredOutputs ?? undefined,
+    }
+  }
+  if (body.call) return body.call
+  if (body.id)   return body  // raw call object
   return null
 }
 
@@ -200,6 +223,15 @@ Deno.serve(async (req) => {
     .from('calls')
     .upsert(row, { onConflict: 'user_id,vapi_id' })
 
-  if (upsertErr) return json({ ok: false, error: upsertErr.message }, 500)
+  if (upsertErr) {
+    console.log('[vapi-webhook] upsert failed', upsertErr.message)
+    return json({ ok: false, error: upsertErr.message }, 500)
+  }
+  console.log('[vapi-webhook] upserted', {
+    vapi_id: call.id,
+    has_started: !!row.started_at,
+    has_ended:   !!row.ended_at,
+    end_reason:  row.end_reason,
+  })
   return json({ ok: true, vapi_id: call.id })
 })
