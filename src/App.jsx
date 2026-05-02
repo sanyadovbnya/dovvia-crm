@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { fetchCallsFromDb, subscribeToCalls } from './utils/callsDb'
+import { fetchCallsFromDb, subscribeToCalls, syncFromVapi } from './utils/callsDb'
 import { readCallsCache, writeCallsCache, mergeCalls } from './utils/callsCache'
 import { fmtDuration, callDuration, isBooked, isWaiting, callOutputs } from './utils/formatters'
 import { upsertAppointmentsFromCalls } from './utils/appointments'
@@ -91,7 +91,41 @@ function Dashboard({ session, onLogout }) {
     })
   }, [])
 
-  const loadCalls = useCallback(async () => {
+  // Background auto-sync from Vapi — temporary safety net while the
+  // server webhook is being shaken out. The DB mirror remains the
+  // primary source; this just tops it up by hitting the existing
+  // vapi-sync edge function (which uses the user's stored vapi_key
+  // server-side; never exposes it to the browser). Throttled so a
+  // tab refresh doesn't trigger N syncs in a row.
+  const lastAutoSyncRef = useRef(0)
+  const AUTO_SYNC_THROTTLE_MS = 60_000
+
+  const refreshCallsFromDb = useCallback(async () => {
+    if (!session?.user?.id) return
+    const fresh = await fetchCallsFromDb({ limit: 200 })
+    setCalls(fresh)
+    writeCallsCache(session.user.id, fresh)
+    upsertAppointmentsFromCalls(fresh)
+  }, [session?.user?.id])
+
+  const maybeAutoSync = useCallback(async (force = false) => {
+    if (!session?.user?.id) return
+    const now = Date.now()
+    if (!force && now - lastAutoSyncRef.current < AUTO_SYNC_THROTTLE_MS) return
+    lastAutoSyncRef.current = now
+    try {
+      await syncFromVapi()
+      // Realtime should already be pushing inserts, but explicitly
+      // re-reading the DB is a safety net for the brief window where
+      // the subscription isn't ready yet.
+      await refreshCallsFromDb()
+    } catch {
+      // Webhook is the primary path; sync failure shouldn't surface
+      // an error to the user.
+    }
+  }, [session?.user?.id, refreshCallsFromDb])
+
+  const loadCalls = useCallback(async ({ forceSync = false } = {}) => {
     if (!session?.user?.id) return
     setLoading(true)
     setError('')
@@ -99,16 +133,15 @@ function Dashboard({ session, onLogout }) {
       // Single source of truth is now public.calls (mirror of Vapi via
       // the server webhook). The localStorage cache stays as an offline
       // fallback so a flaky network doesn't blank the dashboard.
-      const fresh = await fetchCallsFromDb({ limit: 200 })
-      setCalls(fresh)
-      writeCallsCache(session.user.id, fresh)
-      upsertAppointmentsFromCalls(fresh)
+      await refreshCallsFromDb()
     } catch (e) {
       setError(e.message || 'Failed to load calls.')
     } finally {
       setLoading(false)
     }
-  }, [session?.user?.id])
+    // Fire-and-forget background sync; doesn't block the spinner.
+    maybeAutoSync(forceSync)
+  }, [session?.user?.id, refreshCallsFromDb, maybeAutoSync])
 
   useEffect(() => { loadCalls() }, [loadCalls])
 
@@ -328,7 +361,9 @@ function Dashboard({ session, onLogout }) {
   // on success so a follow-up tab switch doesn't double-fetch.
   function handleRefresh() {
     tabsLoadedRef.current.clear()
-    loadCalls()
+    // Force-sync from Vapi on explicit refresh (bypass the throttle)
+    // so the Refresh button always pulls anything new.
+    loadCalls({ forceSync: true })
     if (tab === 'schedule' || tab === 'customers') {
       fetchAllAppointments()
         .then(a => { setAppointments(a); tabsLoadedRef.current.add('appointments') })
