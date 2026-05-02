@@ -48,9 +48,14 @@ export default function CallRow({ call, resolution, active, onClick, shopName, o
   const o = callOutputs(call)
   const spoken = o.customerPhone
   const callerId = call.customer?.number
-  const phoneShown = spoken || callerId
+  // Customers sometimes give only the last 7 digits ("just call 425-6932").
+  // phoneDigits returns null for anything under 10 digits, which we use as
+  // a "real number?" probe — only show the spoken value when it's complete,
+  // otherwise prefer the Twilio caller ID we already have.
+  const spokenValid = phoneDigits(spoken) !== null
+  const phoneShown = spokenValid ? spoken : (callerId || spoken)
   const phoneIsName = phoneShown && phoneShown === name
-  const differ = spoken && callerId && phoneDigits(spoken) !== phoneDigits(callerId)
+  const differ = spokenValid && callerId && phoneDigits(spoken) !== phoneDigits(callerId)
   const duration = callDuration(call)
   const booked = isBooked(call)
   const waiting = isWaiting(call)

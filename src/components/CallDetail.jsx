@@ -164,8 +164,12 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
 
   const spoken = o.customerPhone
   const callerId = call.customer?.number
-  const phonesDiffer = spoken && callerId && phoneDigits(spoken) !== phoneDigits(callerId)
-  const primaryPhone = spoken || callerId
+  // If the spoken callback number is incomplete (under 10 digits — common
+  // when customers say "just call 425-6932"), fall back to the Twilio
+  // caller ID so we display a dialable number, not a partial one.
+  const spokenValid = phoneDigits(spoken) !== null
+  const phonesDiffer = spokenValid && callerId && phoneDigits(spoken) !== phoneDigits(callerId)
+  const primaryPhone = spokenValid ? spoken : (callerId || spoken)
 
   const hasApptInfo = o.serviceType || o.problem || o.appointmentDate || o.appointmentTime
 
