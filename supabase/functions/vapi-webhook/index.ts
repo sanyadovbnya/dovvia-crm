@@ -121,13 +121,33 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'server not configured' }, 500)
   }
 
-  // Vapi's "Server URL Secret" arrives as X-Vapi-Secret. Some setups
-  // forward it as Authorization: Bearer instead, accept both.
+  // Diagnostic logging — surfaces in Supabase Edge Functions → Logs.
+  // Lets us see whether Vapi is calling us at all and which auth-shape
+  // headers (if any) it's sending. Sanitized: only first 8 chars + length.
+  const allHeaderKeys = [...req.headers.keys()].sort()
+  const authish = allHeaderKeys.filter(k =>
+    k.startsWith('x-vapi') || k === 'authorization' || k === 'x-webhook-secret' || k === 'x-secret'
+  )
+  console.log('[vapi-webhook] incoming', {
+    method: req.method,
+    contentType: req.headers.get('content-type'),
+    totalHeaders: allHeaderKeys.length,
+    authish: authish.map(k => {
+      const v = (req.headers.get(k) || '').trim()
+      return `${k}=${v.slice(0, 8)}…(${v.length}ch)`
+    }),
+  })
+
+  // Vapi sends the configured secret as the X-Vapi-Secret header (or
+  // through Authorization: Bearer in some setups). Accept either.
   const headerSecret = (req.headers.get('x-vapi-secret') || '').trim()
   const auth         = (req.headers.get('authorization')  || '').trim()
   const bearer       = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : ''
   const secret       = headerSecret || bearer
-  if (!secret) return json({ ok: false, error: 'missing webhook secret' }, 401)
+  if (!secret) {
+    console.log('[vapi-webhook] 401 missing secret — no x-vapi-secret or bearer header found')
+    return json({ ok: false, error: 'missing webhook secret' }, 401)
+  }
 
   const sb = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
 
@@ -139,8 +159,12 @@ Deno.serve(async (req) => {
     .eq('vapi_webhook_secret', secret)
     .maybeSingle()
 
-  if (profileErr) return json({ ok: false, error: profileErr.message }, 500)
+  if (profileErr) {
+    console.log('[vapi-webhook] 500 profile lookup failed', profileErr.message)
+    return json({ ok: false, error: profileErr.message }, 500)
+  }
   if (!profile || !safeEqual(profile.vapi_webhook_secret, secret)) {
+    console.log('[vapi-webhook] 401 secret did not match any profile (received first 8:', secret.slice(0, 8) + '…)')
     return json({ ok: false, error: 'invalid secret' }, 401)
   }
   const userId: string = profile.id
@@ -154,6 +178,11 @@ Deno.serve(async (req) => {
   // full picture. Still upsert on partials when the id is present so a
   // dropped end-of-call-report doesn't lose the row entirely.
   const call = extractCallObject(body)
+  console.log('[vapi-webhook] auth ok', {
+    user_id: userId,
+    msg_type: body?.message?.type || '(unknown)',
+    has_call_id: !!call?.id,
+  })
   if (!call?.id) {
     // Acknowledge so Vapi doesn't retry; nothing to store.
     return json({ ok: true, ignored: 'no call.id in payload' })
