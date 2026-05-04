@@ -123,16 +123,21 @@ export default function Shell({
         </div>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 lg:pl-64 pb-20 lg:pb-0">
-        {/* Topbar */}
-        <header className="sticky top-0 z-20 bg-surface-page/80 dark:bg-slate-950/80 backdrop-blur border-b border-slate-100 dark:border-slate-800">
-          <div className="px-4 sm:px-6 lg:px-10 py-4 flex items-center justify-between gap-4">
-            <div className="lg:hidden flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white">
+      {/* Main — bottom padding accounts for the fixed bottom nav PLUS the
+          home-indicator safe-area inset on Pro Max devices, so the last
+          item in the list isn't hidden behind the tab bar. */}
+      <div className="flex-1 lg:pl-64 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+        {/* Topbar — pt-safe pushes content below the iOS Dynamic Island /
+            notch. Mobile button cluster uses tight !p-2 padding so all four
+            icons fit alongside the logo at 320px wide; sm:btn-ghost
+            restores the standard padding once we have room. */}
+        <header className="sticky top-0 z-20 bg-surface-page/80 dark:bg-slate-950/80 backdrop-blur border-b border-slate-100 dark:border-slate-800 pt-safe px-safe">
+          <div className="px-4 sm:px-6 lg:px-10 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-4">
+            <div className="lg:hidden flex items-center gap-2 min-w-0">
+              <div className="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white">
                 <Icons.Wrench size={16} />
               </div>
-              <p className="font-bold text-ink-strong dark:text-slate-100">Dovvia CRM</p>
+              <p className="font-bold text-ink-strong dark:text-slate-100 truncate">Dovvia CRM</p>
             </div>
 
             <div className="hidden lg:block">
@@ -140,18 +145,34 @@ export default function Shell({
               <p className="text-sm text-ink-muted dark:text-slate-400">{TAB_SUBTITLE[tab]}</p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button onClick={onRefresh} className="btn-ghost text-emerald-600 dark:text-emerald-400" title="Refresh">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <button
+                onClick={onRefresh}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-surface-muted hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-emerald-600 dark:text-emerald-400 font-medium p-2 sm:px-3.5 sm:py-2 text-sm transition"
+                title="Refresh"
+              >
                 <span className={loading ? 'spinner' : ''}><Icons.Refresh /></span>
                 <span className="hidden sm:inline">{loading ? 'Loading…' : 'Refresh'}</span>
               </button>
-              <button onClick={toggle} className="btn-ghost lg:hidden text-slate-900 dark:text-white" title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+              <button
+                onClick={toggle}
+                className="lg:hidden inline-flex items-center justify-center rounded-xl bg-surface-muted hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white p-2 transition"
+                title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              >
                 {theme === 'dark' ? <Icons.Sun /> : <Icons.Moon />}
               </button>
-              <button onClick={onOpenSettings} className="btn-ghost lg:hidden text-blue-600 dark:text-blue-400" title="Settings">
+              <button
+                onClick={onOpenSettings}
+                className="lg:hidden inline-flex items-center justify-center rounded-xl bg-surface-muted hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 p-2 transition"
+                title="Settings"
+              >
                 <Icons.Settings />
               </button>
-              <button onClick={onLogout} className="btn-ghost lg:hidden text-rose-600 dark:text-rose-400" title="Sign out">
+              <button
+                onClick={onLogout}
+                className="lg:hidden inline-flex items-center justify-center rounded-xl bg-surface-muted hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-rose-600 dark:text-rose-400 p-2 transition"
+                title="Sign out"
+              >
                 <Icons.LogOut />
               </button>
             </div>
@@ -163,8 +184,10 @@ export default function Shell({
         </main>
       </div>
 
-      {/* Bottom nav — mobile only. Primary 4 + a More button for the rest. */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex z-30">
+      {/* Bottom nav — mobile only. Primary 4 + a More button for the rest.
+          pb-safe keeps the home indicator off the tap targets on iPhone
+          14/15/+ Pro Max devices. */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex z-30 pb-safe">
         {PRIMARY_NAV.map(n => (
           <NavItem key={n.key} variant="bottom" label={n.label} icon={n.icon} active={tab === n.key} onClick={() => setTab(n.key)} />
         ))}

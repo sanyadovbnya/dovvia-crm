@@ -57,3 +57,20 @@
 .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* iOS safe-area helpers — used by the sticky header, bottom nav, and
+   bottom sheets so the Dynamic Island doesn't cover the topbar and the
+   home indicator doesn't sit on top of the tab bar. Requires
+   <meta name="viewport" content="..., viewport-fit=cover"> in index.html
+   (we set that explicitly). Falls back to 0 on devices that don't
+   define safe-area variables. */
+.pt-safe { padding-top:    env(safe-area-inset-top, 0px); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pl-safe { padding-left:   env(safe-area-inset-left, 0px); }
+.pr-safe { padding-right:  env(safe-area-inset-right, 0px); }
+/* Combined helper for elements that need horizontal safe-area in both
+   directions (e.g. fixed bars in landscape on devices with notches). */
+.px-safe {
+  padding-left:  env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}

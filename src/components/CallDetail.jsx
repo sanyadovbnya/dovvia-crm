@@ -186,9 +186,10 @@ export default function CallDetail({ call, resolution, onResolutionChange, onGen
       />
 
       {/* Panel */}
-      <aside className="slide-in fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-surface-card dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 overflow-y-auto flex flex-col shadow-pop">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-surface-card/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800 px-5 py-4 flex items-start justify-between gap-3">
+      <aside className="slide-in fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-surface-card dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 overflow-y-auto flex flex-col shadow-pop pb-safe">
+        {/* Header — pt-safe pushes the title below the iOS Dynamic Island
+            on full-width phones where the panel covers the whole viewport. */}
+        <header className="sticky top-0 z-10 bg-surface-card/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800 px-5 py-4 flex items-start justify-between gap-3 pt-[calc(1rem+env(safe-area-inset-top))]">
           <div className="flex items-center gap-3 min-w-0">
             <div className="h-11 w-11 shrink-0 rounded-xl bg-pastel-lavender text-pastel-lavDeep dark:bg-indigo-500/20 dark:text-indigo-300 flex items-center justify-center font-bold">
               {initial}

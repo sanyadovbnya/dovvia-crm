@@ -127,8 +127,8 @@ function LeadDetail({ lead, appointment, onClose, onChanged, onDeleted }) {
   return (
     <>
       <div onClick={onClose} className="fixed inset-0 z-40 bg-slate-900/30 dark:bg-black/60 backdrop-blur-sm" />
-      <aside className="slide-in fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-surface-card dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 overflow-y-auto flex flex-col shadow-pop">
-        <header className="sticky top-0 z-10 bg-surface-card/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800 px-5 py-4 flex items-start justify-between gap-3">
+      <aside className="slide-in fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-surface-card dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 overflow-y-auto flex flex-col shadow-pop pb-safe">
+        <header className="sticky top-0 z-10 bg-surface-card/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-100 dark:border-slate-800 px-5 py-4 flex items-start justify-between gap-3 pt-[calc(1rem+env(safe-area-inset-top))]">
           <div className="flex items-center gap-3 min-w-0">
             <div className="h-11 w-11 shrink-0 rounded-xl bg-pastel-mint text-pastel-mintDeep dark:bg-emerald-500/20 dark:text-emerald-300 flex items-center justify-center font-bold">
               {initial}
@@ -356,7 +356,7 @@ export default function Leads() {
     <div>
       {/* Header row */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {[
             { key: 'all',     label: 'All',     count: counts.all },
             { key: 'waiting', label: 'Waiting', count: counts.waiting },

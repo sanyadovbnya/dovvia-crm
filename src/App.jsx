@@ -373,8 +373,9 @@ function Dashboard({ session, onLogout }) {
 
       {tab === 'calls' && (
         <section className="mt-6">
-          {/* Filter chips */}
-          <div className="flex gap-2 mb-3">
+          {/* Filter chips — flex-wrap so they line-break on narrow phones
+              (iPhone SE / iPhone mini at 320–375px) instead of overflowing. */}
+          <div className="flex flex-wrap gap-2 mb-3">
             {[
               { key: 'all',     label: 'All',     count: calls.length },
               { key: 'booked',  label: 'Booked',  count: bookedCalls.length },
