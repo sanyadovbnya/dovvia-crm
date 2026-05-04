@@ -82,9 +82,13 @@ export default function CallRow({ call, resolution, active, onClick, shopName, o
       tabIndex={0}
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className={`w-full text-left border-b border-slate-100 dark:border-slate-800 last:border-b-0 transition cursor-pointer ${active ? 'bg-brand-50 dark:bg-brand-500/15' : 'hover:bg-surface-muted dark:hover:bg-slate-800'}`}
+      className={`w-full text-left border-b border-slate-100 dark:border-slate-800 last:border-b-0 transition cursor-pointer overflow-hidden ${active ? 'bg-brand-50 dark:bg-brand-500/15' : 'hover:bg-surface-muted dark:hover:bg-slate-800'}`}
     >
-      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 relative">
+      {/* min-w-0 + the wrapper's overflow-hidden together stop a long
+          unbreakable string (a transcript-derived appointment line, an
+          un-formatted phone, etc.) from forcing the row past the viewport
+          and causing the page to subtly reflow when calls finish loading. */}
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 relative min-w-0">
         {/* Left-edge color stripe — at-a-glance status indicator. */}
         <span
           aria-hidden

@@ -125,8 +125,11 @@ export default function Shell({
 
       {/* Main — bottom padding accounts for the fixed bottom nav PLUS the
           home-indicator safe-area inset on Pro Max devices, so the last
-          item in the list isn't hidden behind the tab bar. */}
-      <div className="flex-1 lg:pl-64 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+          item in the list isn't hidden behind the tab bar.
+          min-w-0 so wide content (long phone numbers, transcripts, etc.)
+          doesn't push this flex child wider than the viewport and cause a
+          horizontal shift when content loads. */}
+      <div className="flex-1 min-w-0 lg:pl-64 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         {/* Topbar — pt-safe pushes content below the iOS Dynamic Island /
             notch. Mobile button cluster uses tight !p-2 padding so all four
             icons fit alongside the logo at 320px wide; sm:btn-ghost
