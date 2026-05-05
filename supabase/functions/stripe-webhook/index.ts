@@ -30,22 +30,16 @@ function ok(body: unknown = { received: true }, status = 200) {
 
 // Map a Stripe Price ID back to our internal plan key. Used to populate
 // profiles.subscription_plan whenever the active subscription changes
-// (upgrade, downgrade, plan change in Customer Portal). Price IDs live
-// in env vars so test-mode and live-mode share this code unchanged.
-function buildPriceToPlan(): Record<string, string> {
-  const map: Record<string, string> = {}
-  const starter = Deno.env.get('STRIPE_PRICE_STARTER')
-  const pro     = Deno.env.get('STRIPE_PRICE_PRO')
-  const multi   = Deno.env.get('STRIPE_PRICE_MULTI')
-  if (starter) map[starter] = 'starter'
-  if (pro)     map[pro]     = 'pro'
-  if (multi)   map[multi]   = 'multi-shop'
-  return map
+// (upgrade, downgrade, plan change in Customer Portal).
+const PRICE_TO_PLAN: Record<string, string> = {
+  'price_1TTUUEK2QsCqT7BRg2hYLYDk': 'starter',
+  'price_1TTUUeK2QsCqT7BRYlWk7ZBv': 'pro',
+  'price_1TTUVQK2QsCqT7BRdYlYnKUj': 'multi-shop',
 }
 
-function priceIdToPlan(priceId: string | undefined, table: Record<string, string>): string | null {
+function priceIdToPlan(priceId: string | undefined): string | null {
   if (!priceId) return null
-  return table[priceId] ?? null
+  return PRICE_TO_PLAN[priceId] ?? null
 }
 
 Deno.serve(async (req) => {
@@ -61,7 +55,6 @@ Deno.serve(async (req) => {
 
   const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' })
   const sb = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
-  const PRICE_TO_PLAN = buildPriceToPlan()
 
   // Stripe signature is computed against the raw body — we MUST read the
   // body as text and pass it verbatim, not parse-and-restringify.
@@ -112,7 +105,7 @@ Deno.serve(async (req) => {
         const sub = event.data.object as Stripe.Subscription
         const customerId = sub.customer as string
         const priceId   = sub.items.data[0]?.price?.id
-        const planKey   = priceIdToPlan(priceId, PRICE_TO_PLAN)
+        const planKey   = priceIdToPlan(priceId)
         const periodEnd = sub.current_period_end
           ? new Date(sub.current_period_end * 1000).toISOString()
           : null
