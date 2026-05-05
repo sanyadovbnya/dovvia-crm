@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Dovvia — AI-ассистент для ремонтных мастерских</title>
-  <meta name="description" content="AI-ассистент Max отвечает на каждый звонок 24/7, бронирует приёмы и записывает всё в одном месте. Идеально для авто, компьютерных, бытовых ремонтных мастерских." />
-  <meta property="og:title" content="Dovvia — AI-ассистент для ремонтных мастерских" />
+  <title>Dovvia — AI-ассистент для любого бизнеса</title>
+  <meta name="description" content="AI-ассистент Max отвечает на каждый звонок 24/7, бронирует приёмы и записывает всё в одном месте. Для любого сервисного бизнеса — ремонт, услуги, клининг, медицина, красота." />
+  <meta property="og:title" content="Dovvia — AI-ассистент для любого бизнеса" />
   <meta property="og:description" content="Перестаньте пропускать звонки. AI отвечает 24/7, бронирует приёмы и записывает всё в одном месте." />
   <meta property="og:image" content="https://getdovvia.com/assets/og-image.png" />
   <meta property="og:url" content="https://getdovvia.com" />
@@ -45,6 +45,67 @@
       border: 2px dashed #CBD5E1;
       display: flex; align-items: center; justify-content: center;
       color: #94A3B8; font-size: 14px; font-weight: 500;
+    }
+
+    /* ===== Animated flow ===== */
+    /* Scroll-reveal cards — start hidden, slide+fade in when visible. */
+    .flow-card {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .flow-card.in-view { opacity: 1; transform: translateY(0); }
+    /* Stagger so cards reveal one after another, not all at once. */
+    .flow-card:nth-child(1).in-view { transition-delay: 0ms; }
+    .flow-card:nth-child(2).in-view { transition-delay: 120ms; }
+    .flow-card:nth-child(3).in-view { transition-delay: 240ms; }
+    .flow-card:nth-child(4).in-view { transition-delay: 360ms; }
+
+    /* Step 1 — phone-ringing pulse */
+    @keyframes ring-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(232, 149, 46, 0.45); }
+      50%      { box-shadow: 0 0 0 12px rgba(232, 149, 46, 0); }
+    }
+    .ring-pulse { animation: ring-pulse 1.6s ease-out infinite; }
+    .ring-shake {
+      animation: ring-shake 1.6s ease-in-out infinite;
+      transform-origin: center;
+    }
+    @keyframes ring-shake {
+      0%, 100%       { transform: rotate(0deg); }
+      6%, 18%, 30%   { transform: rotate(-12deg); }
+      12%, 24%, 36%  { transform: rotate(12deg); }
+      40%            { transform: rotate(0); }
+    }
+
+    /* Step 2 — speech-waveform bars */
+    @keyframes wave-bar {
+      0%, 100% { transform: scaleY(0.3); }
+      50%      { transform: scaleY(1); }
+    }
+    .wave-bar {
+      transform-origin: center bottom;
+      animation: wave-bar 0.9s ease-in-out infinite;
+      animation-delay: var(--delay, 0ms);
+    }
+
+    /* Step 3 — calendar slot pulsing as the "booked" cell */
+    @keyframes slot-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+      50%      { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    }
+    .slot-booked { animation: slot-pulse 2.2s ease-in-out infinite; }
+
+    /* Step 4 — email card gentle bounce on arrival */
+    @keyframes email-bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30%           { transform: translateY(-4px); }
+    }
+    .email-card { animation: email-bounce 3.4s ease-in-out infinite; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flow-card, .flow-card.in-view { opacity: 1; transform: none; transition: none; }
+      .ring-pulse, .ring-shake, .wave-bar, .slot-booked, .email-card { animation: none; }
     }
   </style>
 </head>
@@ -110,7 +171,7 @@
           Каждый пропущенный звонок —<br />это потерянный клиент.
         </h2>
         <p class="text-ink-muted max-w-2xl mx-auto">
-          Пока вы под подъёмником или на встрече, ваш телефон молчит. Клиент звонит дальше — и записывается у конкурента.
+          Пока вы на работе, в дороге или с клиентом — ваш телефон молчит. Звонящий идёт дальше и записывается у конкурента.
         </p>
       </div>
       <div class="grid sm:grid-cols-3 gap-5">
@@ -125,38 +186,110 @@
           <p class="text-sm text-ink-muted">кто ответил. Не перезвонили — клиент ушёл.</p>
         </div>
         <div class="bg-white rounded-2xl p-7 shadow-card">
-          <p class="text-4xl font-extrabold text-brand-600 mb-2">$200+</p>
-          <p class="font-semibold text-ink-strong mb-1">средний чек</p>
-          <p class="text-sm text-ink-muted">упускается с каждым неотвеченным звонком.</p>
+          <p class="text-4xl font-extrabold text-brand-600 mb-2">5 мин</p>
+          <p class="font-semibold text-ink-strong mb-1">готов ждать клиент</p>
+          <p class="text-sm text-ink-muted">прежде чем перезвонит конкуренту.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ========== HOW IT WORKS ========== -->
+  <!-- ========== HOW IT WORKS — animated step-by-step flow ========== -->
   <section id="how" class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-14">
         <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
-          Как работает Dovvia
+          От звонка до записи — за 60 секунд
         </h2>
         <p class="text-ink-muted max-w-2xl mx-auto">
-          Запуск за 24 часа. Никаких настроек на вашей стороне.
+          Никаких настроек на вашей стороне. Запуск за 24 часа.
         </p>
       </div>
-      <div class="grid md:grid-cols-3 gap-5">
-        <Step n="1">
-          <h3 class="text-lg font-bold text-ink-strong mb-2">Max отвечает на ваш номер</h3>
-          <p class="text-sm text-ink-muted leading-relaxed">Ваш текущий номер остаётся. Max отвечает на любом языке, узнаёт чем может помочь и собирает контакт.</p>
-        </Step>
-        <Step n="2">
-          <h3 class="text-lg font-bold text-ink-strong mb-2">Бронирует приёмы автоматически</h3>
-          <p class="text-sm text-ink-muted leading-relaxed">Max видит ваш календарь и записывает клиентов на свободные слоты. Адрес, проблема, время — всё в одном месте.</p>
-        </Step>
-        <Step n="3">
-          <h3 class="text-lg font-bold text-ink-strong mb-2">Уведомление вам сразу</h3>
-          <p class="text-sm text-ink-muted leading-relaxed">Email или SMS с резюме звонка приходит в течение минуты после разговора. Записи всех звонков — в дашборде.</p>
-        </Step>
+
+      <div class="grid gap-7 lg:grid-cols-4 lg:gap-5">
+
+        <!-- ==== Step 1 — Customer calls ==== -->
+        <div class="flow-card relative bg-white rounded-2xl p-6 pt-8 shadow-card border border-slate-100">
+          <div class="absolute -top-3 left-6 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold shadow-card">1</div>
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Клиент звонит</h3>
+          <p class="text-sm text-ink-muted mb-5 leading-relaxed">На ваш текущий номер. Max отвечает мгновенно — вам ничего не делать.</p>
+          <!-- Mock phone-ringing card -->
+          <div class="bg-surface-page rounded-xl p-3 flex items-center gap-3">
+            <div class="ring-pulse h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 shrink-0">
+              <span class="ring-shake inline-flex">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[11px] font-bold text-ink-strong uppercase tracking-wider">Входящий</p>
+              <p class="text-sm font-semibold text-ink-base tabular-nums truncate">+1 (509) 555-0142</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==== Step 2 — Max answers ==== -->
+        <div class="flow-card relative bg-white rounded-2xl p-6 pt-8 shadow-card border border-slate-100">
+          <div class="absolute -top-3 left-6 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold shadow-card">2</div>
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Max отвечает</h3>
+          <p class="text-sm text-ink-muted mb-5 leading-relaxed">Узнаёт что нужно, собирает контакт, бронирует приём в свободный слот.</p>
+          <!-- Mock waveform -->
+          <div class="bg-surface-page rounded-xl p-3">
+            <div class="flex items-center gap-1 h-12 px-2">
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 0ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 120ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 60ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 200ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 80ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 280ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 40ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 220ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 100ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 180ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 30ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 260ms"></span>
+            </div>
+            <p class="text-[11px] text-ink-muted mt-2 text-center font-medium">Max разговаривает с клиентом…</p>
+          </div>
+        </div>
+
+        <!-- ==== Step 3 — Appointment booked ==== -->
+        <div class="flow-card relative bg-white rounded-2xl p-6 pt-8 shadow-card border border-slate-100">
+          <div class="absolute -top-3 left-6 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold shadow-card">3</div>
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Приём бронируется</h3>
+          <p class="text-sm text-ink-muted mb-5 leading-relaxed">Свободный слот в вашем календаре — занят. Имя, проблема, время.</p>
+          <!-- Mock calendar -->
+          <div class="bg-surface-page rounded-xl p-3">
+            <p class="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-2">Вторник, 5 мая</p>
+            <div class="grid grid-cols-3 gap-1.5">
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">10:00</div>
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">12:00</div>
+              <div class="slot-booked text-[11px] py-2 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-center">2:00 ✓</div>
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">3:30</div>
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">5:00</div>
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">6:30</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==== Step 4 — Email notification ==== -->
+        <div class="flow-card relative bg-white rounded-2xl p-6 pt-8 shadow-card border border-slate-100">
+          <div class="absolute -top-3 left-6 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold shadow-card">4</div>
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Уведомление вам</h3>
+          <p class="text-sm text-ink-muted mb-5 leading-relaxed">Email с резюме разговора приходит за минуту. История — в дашборде.</p>
+          <!-- Mock email card -->
+          <div class="bg-surface-page rounded-xl p-3">
+            <div class="email-card bg-white rounded-lg p-3 shadow-card">
+              <div class="flex items-center gap-2 mb-1.5">
+                <div class="h-5 w-5 rounded bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-[10px] text-white font-bold shrink-0">D</div>
+                <p class="text-[11px] font-bold text-ink-strong">Dovvia</p>
+                <p class="text-[10px] text-ink-muted ml-auto">сейчас</p>
+              </div>
+              <p class="text-xs font-semibold text-ink-strong leading-snug">Новый звонок: Кристина · ✓ Записан</p>
+              <p class="text-[10px] text-ink-muted mt-0.5">Вторник, 14:00 · Ремонт тормозов</p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -259,7 +392,7 @@
       <div class="bg-white rounded-2xl p-8 sm:p-10 shadow-card">
         <svg class="text-brand-500 mb-4" width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 12.5h-2v-3a3 3 0 0 1 3-3v-2a5 5 0 0 0-5 5v6h4v-3zm9 0h-2v-3a3 3 0 0 1 3-3v-2a5 5 0 0 0-5 5v6h4v-3z"/></svg>
         <p class="text-xl sm:text-2xl text-ink-strong font-medium leading-relaxed mb-6">
-          «До Dovvia я бросал машину под подъёмником каждый раз, когда телефон звонил. Сейчас открываю приложение в обед — все звонки записаны, приёмы на завтра расписаны. Не пропустил ни одного клиента за месяц.»
+          «До Dovvia каждый звонок прерывал мою работу — я ронял отвертку и бежал к телефону. Сейчас открываю приложение в обед: все звонки записаны, приёмы на завтра расписаны. Не пропустил ни одного клиента за месяц.»
         </p>
         <div class="flex items-center gap-3">
           <!-- TODO: replace with Mike's actual photo -->
@@ -284,7 +417,7 @@
         Привет, я Алекс.
       </h2>
       <p class="text-ink-base text-lg leading-relaxed">
-        Я построил Dovvia потому что мой друг Майк терял $200 каждый раз, когда не успевал поднять трубку. Сейчас Dovvia работает для него 24/7 — и я хочу, чтобы то же самое работало для каждой русскоговорящей мастерской в США.
+        Я построил Dovvia потому что мой папа Майк ремонтирует бытовую технику — стиральные машины, холодильники, посудомойки — и терял клиентов каждый раз, когда не мог ответить на звонок с вызова. Сейчас Dovvia работает для него 24/7. Подходит для любого бизнеса, где звонят клиенты — от автомастерских до клининга, от салонов красоты до ветклиник.
       </p>
       <p class="text-ink-base text-lg leading-relaxed mt-3">
         Это первые 5 клиентов — ваши. Я лично подключаю каждого и помогаю первый месяц. Напишите мне.
@@ -360,7 +493,10 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
       <p class="text-sm text-ink-muted mt-6">
-        Или напишите напрямую — <a href="mailto:hi@getdovvia.com" class="text-brand-600 hover:text-brand-700 font-semibold">hi@getdovvia.com</a>
+        Или свяжитесь напрямую —
+        <a href="mailto:getdovvia@gmail.com" class="text-brand-600 hover:text-brand-700 font-semibold">getdovvia@gmail.com</a>
+        ·
+        <a href="tel:+15093424012" class="text-brand-600 hover:text-brand-700 font-semibold tabular-nums">(509) 342-4012</a>
       </p>
     </div>
   </section>
@@ -375,10 +511,11 @@
         <span class="font-bold text-white">Dovvia</span>
         <span class="text-slate-500">© 2026</span>
       </div>
-      <div class="flex items-center gap-5">
+      <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
         <a href="/en.html" class="hover:text-white transition" hreflang="en">English</a>
         <a href="https://app.getdovvia.com/login" class="hover:text-white transition">Войти</a>
-        <a href="mailto:hi@getdovvia.com" class="hover:text-white transition">Контакт</a>
+        <a href="mailto:getdovvia@gmail.com" class="hover:text-white transition">getdovvia@gmail.com</a>
+        <a href="tel:+15093424012" class="hover:text-white transition tabular-nums">(509) 342-4012</a>
       </div>
     </div>
   </footer>
@@ -408,6 +545,25 @@
       `
       el.replaceWith(li)
     })
+
+    // Scroll-reveal for the animated flow cards. We unobserve after the
+    // first reveal so the animation only plays once per page load —
+    // re-revealing on every scroll back is annoying, not delightful.
+    const flowCards = document.querySelectorAll('.flow-card')
+    if (flowCards.length && 'IntersectionObserver' in window) {
+      const reveal = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view')
+            reveal.unobserve(entry.target)
+          }
+        })
+      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' })
+      flowCards.forEach(card => reveal.observe(card))
+    } else {
+      // No IntersectionObserver support → just show them all immediately.
+      flowCards.forEach(card => card.classList.add('in-view'))
+    }
   </script>
 
 </body>

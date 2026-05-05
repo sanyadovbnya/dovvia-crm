@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Dovvia — AI receptionist for repair shops</title>
-  <meta name="description" content="Max answers every call 24/7, books appointments to your calendar, and emails you a summary within 60 seconds. Built for auto, computer, and trade repair shops." />
-  <meta property="og:title" content="Dovvia — AI receptionist for repair shops" />
+  <title>Dovvia — AI receptionist for service businesses</title>
+  <meta name="description" content="Max answers every call 24/7, books appointments to your calendar, and emails you a summary within 60 seconds. Built for service businesses — repair, trades, cleaning, salons, clinics." />
+  <meta property="og:title" content="Dovvia — AI receptionist for service businesses" />
   <meta property="og:description" content="Stop missing calls. AI answers 24/7, books appointments, and tracks every job in one place." />
   <meta property="og:image" content="https://getdovvia.com/assets/og-image.png" />
   <meta property="og:url" content="https://getdovvia.com/en.html" />
@@ -44,6 +44,61 @@
       border: 2px dashed #CBD5E1;
       display: flex; align-items: center; justify-content: center;
       color: #94A3B8; font-size: 14px; font-weight: 500;
+    }
+
+    /* ===== Animated flow ===== */
+    .flow-card {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .flow-card.in-view { opacity: 1; transform: translateY(0); }
+    .flow-card:nth-child(1).in-view { transition-delay: 0ms; }
+    .flow-card:nth-child(2).in-view { transition-delay: 120ms; }
+    .flow-card:nth-child(3).in-view { transition-delay: 240ms; }
+    .flow-card:nth-child(4).in-view { transition-delay: 360ms; }
+
+    @keyframes ring-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(232, 149, 46, 0.45); }
+      50%      { box-shadow: 0 0 0 12px rgba(232, 149, 46, 0); }
+    }
+    .ring-pulse { animation: ring-pulse 1.6s ease-out infinite; }
+    .ring-shake {
+      animation: ring-shake 1.6s ease-in-out infinite;
+      transform-origin: center;
+    }
+    @keyframes ring-shake {
+      0%, 100%       { transform: rotate(0deg); }
+      6%, 18%, 30%   { transform: rotate(-12deg); }
+      12%, 24%, 36%  { transform: rotate(12deg); }
+      40%            { transform: rotate(0); }
+    }
+
+    @keyframes wave-bar {
+      0%, 100% { transform: scaleY(0.3); }
+      50%      { transform: scaleY(1); }
+    }
+    .wave-bar {
+      transform-origin: center bottom;
+      animation: wave-bar 0.9s ease-in-out infinite;
+      animation-delay: var(--delay, 0ms);
+    }
+
+    @keyframes slot-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+      50%      { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    }
+    .slot-booked { animation: slot-pulse 2.2s ease-in-out infinite; }
+
+    @keyframes email-bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30%           { transform: translateY(-4px); }
+    }
+    .email-card { animation: email-bounce 3.4s ease-in-out infinite; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flow-card, .flow-card.in-view { opacity: 1; transform: none; transition: none; }
+      .ring-pulse, .ring-shake, .wave-bar, .slot-booked, .email-card { animation: none; }
     }
   </style>
 </head>
@@ -108,7 +163,7 @@
           Every missed call<br />is a lost customer.
         </h2>
         <p class="text-ink-muted max-w-2xl mx-auto">
-          While you're under a car or in a meeting, your phone goes silent. Customers call your competitor instead.
+          While you're working, driving, or with a customer — your phone goes silent. The next person dials your competitor instead.
         </p>
       </div>
       <div class="grid sm:grid-cols-3 gap-5">
@@ -123,38 +178,106 @@
           <p class="text-sm text-ink-muted">No callback in 5 minutes? Customer's gone.</p>
         </div>
         <div class="bg-white rounded-2xl p-7 shadow-card">
-          <p class="text-4xl font-extrabold text-brand-600 mb-2">$200+</p>
-          <p class="font-semibold text-ink-strong mb-1">average ticket</p>
-          <p class="text-sm text-ink-muted">walked out the door with each missed call.</p>
+          <p class="text-4xl font-extrabold text-brand-600 mb-2">5 min</p>
+          <p class="font-semibold text-ink-strong mb-1">max wait time</p>
+          <p class="text-sm text-ink-muted">before they call your competitor.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ========== HOW IT WORKS ========== -->
+  <!-- ========== HOW IT WORKS — animated step-by-step flow ========== -->
   <section id="how" class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-14">
         <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
-          How Dovvia works
+          From ring to booked in 60 seconds
         </h2>
         <p class="text-ink-muted max-w-2xl mx-auto">
           Live in 24 hours. Zero setup on your side.
         </p>
       </div>
-      <div class="grid md:grid-cols-3 gap-5">
-        <Step n="1">
-          <h3 class="text-lg font-bold text-ink-strong mb-2">Max answers your number</h3>
-          <p class="text-sm text-ink-muted leading-relaxed">Keep your existing number. Max picks up, asks how he can help, and captures the customer's contact info.</p>
-        </Step>
-        <Step n="2">
-          <h3 class="text-lg font-bold text-ink-strong mb-2">Books appointments automatically</h3>
-          <p class="text-sm text-ink-muted leading-relaxed">Max sees your calendar and books open slots. Address, problem, time — all captured in one place.</p>
-        </Step>
-        <Step n="3">
-          <h3 class="text-lg font-bold text-ink-strong mb-2">You get notified instantly</h3>
-          <p class="text-sm text-ink-muted leading-relaxed">Email or SMS with a call summary lands in your inbox within 60 seconds. Full call history in the dashboard.</p>
-        </Step>
+
+      <div class="grid gap-7 lg:grid-cols-4 lg:gap-5">
+
+        <!-- Step 1 — Customer calls -->
+        <div class="flow-card relative bg-white rounded-2xl p-6 pt-8 shadow-card border border-slate-100">
+          <div class="absolute -top-3 left-6 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold shadow-card">1</div>
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Customer calls</h3>
+          <p class="text-sm text-ink-muted mb-5 leading-relaxed">On your existing number. Max picks up instantly — you do nothing.</p>
+          <div class="bg-surface-page rounded-xl p-3 flex items-center gap-3">
+            <div class="ring-pulse h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 shrink-0">
+              <span class="ring-shake inline-flex">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[11px] font-bold text-ink-strong uppercase tracking-wider">Incoming</p>
+              <p class="text-sm font-semibold text-ink-base tabular-nums truncate">+1 (509) 555-0142</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 — Max answers -->
+        <div class="flow-card relative bg-white rounded-2xl p-6 pt-8 shadow-card border border-slate-100">
+          <div class="absolute -top-3 left-6 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold shadow-card">2</div>
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Max answers</h3>
+          <p class="text-sm text-ink-muted mb-5 leading-relaxed">Asks what they need, captures contact info, books the slot.</p>
+          <div class="bg-surface-page rounded-xl p-3">
+            <div class="flex items-center gap-1 h-12 px-2">
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 0ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 120ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 60ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 200ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 80ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 280ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 40ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 220ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 100ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 180ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 30ms"></span>
+              <span class="wave-bar block w-1.5 h-full bg-brand-500 rounded-full" style="--delay: 260ms"></span>
+            </div>
+            <p class="text-[11px] text-ink-muted mt-2 text-center font-medium">Max is talking to the customer…</p>
+          </div>
+        </div>
+
+        <!-- Step 3 — Appointment booked -->
+        <div class="flow-card relative bg-white rounded-2xl p-6 pt-8 shadow-card border border-slate-100">
+          <div class="absolute -top-3 left-6 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold shadow-card">3</div>
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Appointment booked</h3>
+          <p class="text-sm text-ink-muted mb-5 leading-relaxed">Open slot in your calendar — taken. Name, problem, time.</p>
+          <div class="bg-surface-page rounded-xl p-3">
+            <p class="text-[10px] font-bold text-ink-muted uppercase tracking-wider mb-2">Tuesday, May 5</p>
+            <div class="grid grid-cols-3 gap-1.5">
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">10:00</div>
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">12:00</div>
+              <div class="slot-booked text-[11px] py-2 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-center">2:00 ✓</div>
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">3:30</div>
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">5:00</div>
+              <div class="text-[11px] py-2 rounded-lg bg-white text-ink-muted font-medium text-center">6:30</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 — Email notification -->
+        <div class="flow-card relative bg-white rounded-2xl p-6 pt-8 shadow-card border border-slate-100">
+          <div class="absolute -top-3 left-6 inline-flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-white font-bold shadow-card">4</div>
+          <h3 class="text-lg font-bold text-ink-strong mb-2">You get notified</h3>
+          <p class="text-sm text-ink-muted mb-5 leading-relaxed">Email summary lands in your inbox in under a minute. Full history in the dashboard.</p>
+          <div class="bg-surface-page rounded-xl p-3">
+            <div class="email-card bg-white rounded-lg p-3 shadow-card">
+              <div class="flex items-center gap-2 mb-1.5">
+                <div class="h-5 w-5 rounded bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-[10px] text-white font-bold shrink-0">D</div>
+                <p class="text-[11px] font-bold text-ink-strong">Dovvia</p>
+                <p class="text-[10px] text-ink-muted ml-auto">now</p>
+              </div>
+              <p class="text-xs font-semibold text-ink-strong leading-snug">New call: Christina · ✓ Booked</p>
+              <p class="text-[10px] text-ink-muted mt-0.5">Tuesday 2:00 PM · Brake repair</p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -256,7 +379,7 @@
       <div class="bg-white rounded-2xl p-8 sm:p-10 shadow-card">
         <svg class="text-brand-500 mb-4" width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 12.5h-2v-3a3 3 0 0 1 3-3v-2a5 5 0 0 0-5 5v6h4v-3zm9 0h-2v-3a3 3 0 0 1 3-3v-2a5 5 0 0 0-5 5v6h4v-3z"/></svg>
         <p class="text-xl sm:text-2xl text-ink-strong font-medium leading-relaxed mb-6">
-          "Before Dovvia I'd drop a wrench every time the phone rang. Now I check the app at lunch — every call recorded, every appointment booked for tomorrow. Haven't missed a customer in a month."
+          "Before Dovvia every call meant dropping my tools mid-job and running to the phone. Now I check the app at lunch — every call recorded, every appointment booked for tomorrow. Haven't missed a customer in a month."
         </p>
         <div class="flex items-center gap-3">
           <div class="h-12 w-12 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold">
@@ -279,7 +402,7 @@
         Hey, I'm Alex.
       </h2>
       <p class="text-ink-base text-lg leading-relaxed">
-        I built Dovvia because my friend Mike was losing $200 every time he couldn't get to the phone. Now Dovvia works for him 24/7 — and I want it to work for every shop owner who's tired of losing calls.
+        I built Dovvia because my dad Mike fixes appliances — washers, fridges, dishwashers — and was losing customers every time he couldn't get to the phone while on a service call. Now Dovvia works for him 24/7. Built for any business where customers call to book — repair shops, contractors, salons, clinics, cleaning crews, you name it.
       </p>
       <p class="text-ink-base text-lg leading-relaxed mt-3">
         These first 5 customers are mine. I personally onboard each one and stay on call for the first month. Talk to me.
@@ -355,7 +478,10 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
       <p class="text-sm text-ink-muted mt-6">
-        Or email me directly — <a href="mailto:hi@getdovvia.com" class="text-brand-600 hover:text-brand-700 font-semibold">hi@getdovvia.com</a>
+        Or reach me directly —
+        <a href="mailto:getdovvia@gmail.com" class="text-brand-600 hover:text-brand-700 font-semibold">getdovvia@gmail.com</a>
+        ·
+        <a href="tel:+15093424012" class="text-brand-600 hover:text-brand-700 font-semibold tabular-nums">(509) 342-4012</a>
       </p>
     </div>
   </section>
@@ -370,10 +496,11 @@
         <span class="font-bold text-white">Dovvia</span>
         <span class="text-slate-500">© 2026</span>
       </div>
-      <div class="flex items-center gap-5">
+      <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
         <a href="/" class="hover:text-white transition" hreflang="ru">Русский</a>
         <a href="https://app.getdovvia.com/login" class="hover:text-white transition">Sign in</a>
-        <a href="mailto:hi@getdovvia.com" class="hover:text-white transition">Contact</a>
+        <a href="mailto:getdovvia@gmail.com" class="hover:text-white transition">getdovvia@gmail.com</a>
+        <a href="tel:+15093424012" class="hover:text-white transition tabular-nums">(509) 342-4012</a>
       </div>
     </div>
   </footer>
@@ -398,6 +525,22 @@
       `
       el.replaceWith(li)
     })
+
+    // Scroll-reveal for the animated flow cards. Plays once per page load.
+    const flowCards = document.querySelectorAll('.flow-card')
+    if (flowCards.length && 'IntersectionObserver' in window) {
+      const reveal = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view')
+            reveal.unobserve(entry.target)
+          }
+        })
+      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' })
+      flowCards.forEach(card => reveal.observe(card))
+    } else {
+      flowCards.forEach(card => card.classList.add('in-view'))
+    }
   </script>
 
 </body>
