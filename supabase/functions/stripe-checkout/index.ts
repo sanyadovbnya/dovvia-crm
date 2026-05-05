@@ -113,13 +113,17 @@ Deno.serve(async (req) => {
   if (includeSetup) lineItems.push({ price: PRICE_SETUP, quantity: 1 })
   lineItems.push({ price: planPrice, quantity: 1 })
 
-  const session = await stripe.checkout.sessions.create({
+  // First-5-customers discount auto-apply. The FOUNDER coupon is configured
+  // in Stripe with max_redemptions=5, so once it's exhausted Stripe will
+  // 400 here — we catch that and retry with allow_promotion_codes so the
+  // checkout still works (just at full price). Set STRIPE_FOUNDER_COUPON
+  // to the coupon ID (cpn_…) in Edge Function Secrets to enable.
+  const founderCoupon = Deno.env.get('STRIPE_FOUNDER_COUPON')
+
+  const baseParams: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
     mode: 'subscription',
     line_items: lineItems,
-    // Lets customers paste FOUNDER (25% off forever, 5 redemptions max)
-    // at checkout. Stripe scopes it to recurring items automatically.
-    allow_promotion_codes: true,
     success_url: `${appUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url:  `${appUrl}/subscribe?checkout=cancel`,
     subscription_data: {
@@ -130,7 +134,29 @@ Deno.serve(async (req) => {
     },
     // Tax automatically computed if Stripe Tax is enabled in dashboard.
     automatic_tax: { enabled: false },
-  })
+  }
+
+  let session: Stripe.Checkout.Session
+  try {
+    session = await stripe.checkout.sessions.create(
+      founderCoupon
+        ? { ...baseParams, discounts: [{ coupon: founderCoupon }] }
+        : { ...baseParams, allow_promotion_codes: true },
+    )
+  } catch (e) {
+    // Coupon is exhausted, expired, or invalid — retry without it so the
+    // tenant can still subscribe (at full price).
+    const msg = (e as Error).message || ''
+    if (founderCoupon && /coupon|discount|redemption|invalid_request/i.test(msg)) {
+      console.log('[stripe-checkout] founder coupon failed, falling back:', msg)
+      session = await stripe.checkout.sessions.create({
+        ...baseParams,
+        allow_promotion_codes: true,
+      })
+    } else {
+      throw e
+    }
+  }
 
   return json({ ok: true, url: session.url })
 })
