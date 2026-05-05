@@ -7,7 +7,7 @@
   <meta name="description" content="Max answers every call 24/7, books appointments to your calendar, and emails you a summary within 60 seconds. Built for service businesses — repair, trades, cleaning, salons, clinics." />
   <meta property="og:title" content="Dovvia — AI receptionist for service businesses" />
   <meta property="og:description" content="Stop missing calls. AI answers 24/7, books appointments, and tracks every job in one place." />
-  <meta property="og:image" content="https://getdovvia.com/assets/og-image.png" />
+  <meta property="og:image" content="https://getdovvia.com/desktop-preview-image.png" />
   <meta property="og:url" content="https://getdovvia.com/en.html" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -178,7 +178,7 @@
       </p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center items-center mb-12">
         <a href="#cta" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-7 py-3.5 rounded-xl shadow-card transition text-base">
-          Book a 15-min demo
+          Book a 30-min demo
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
         <a href="#how" class="inline-flex items-center gap-2 text-ink-base hover:text-ink-strong font-semibold px-5 py-3.5 transition">
@@ -186,11 +186,12 @@
         </a>
       </div>
 
+      <!-- Phones get the mobile-cropped image, desktops the wide one. -->
       <div class="mt-4 mx-auto max-w-4xl">
-        <!-- TODO: replace with real screenshot -->
-        <div class="placeholder-img rounded-2xl shadow-pop" style="aspect-ratio: 16/10;">
-          [ Dashboard screenshot — add later ]
-        </div>
+        <picture>
+          <source media="(min-width: 768px)" srcset="/desktop-preview-image.png" />
+          <img src="/mobile-preview-image.png" alt="Dovvia dashboard — calls, appointments, and AI summaries" class="w-full rounded-2xl shadow-pop" />
+        </picture>
       </div>
     </div>
   </section>
@@ -596,10 +597,9 @@
         Ready to try it?
       </h2>
       <p class="text-lg text-ink-muted mb-10 max-w-xl mx-auto">
-        15-minute demo with me. I'll show you how Dovvia works for Mike and answer all your questions. No commitment.
+        30-minute demo with me. I'll show you how Dovvia works for Mike and answer all your questions. No commitment.
       </p>
-      <!-- TODO: replace with your real Calendly URL -->
-      <a href="https://calendly.com/YOUR-CALENDLY-LINK/15min" target="_blank" rel="noopener" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-8 py-4 rounded-xl shadow-pop transition text-lg">
+      <a href="https://calendly.com/getdovvia/30min" target="_blank" rel="noopener" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-8 py-4 rounded-xl shadow-pop transition text-lg">
         Book a demo
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
