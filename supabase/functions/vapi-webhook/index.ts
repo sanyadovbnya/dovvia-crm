@@ -290,18 +290,11 @@ async function sendCallEmail(
     return
   }
 
-  // Look up the tenant's auth email + shop name + notification level.
-  // Service-role; the tenant never sees this. Each tenant only gets
-  // emails about their own calls.
-  const { data: userInfo, error: userErr } = await sb.auth.admin.getUserById(userId)
-  const recipient = userInfo?.user?.email
-  if (userErr || !recipient) {
-    console.log('[vapi-webhook] email skipped — no recipient:', userErr?.message)
-    return
-  }
+  // Look up the tenant's profile (shop name, notification level, custom
+  // recipient list). Service-role; each tenant only ever sees their own.
   const { data: profile } = await sb
     .from('profiles')
-    .select('shop_name, notifications_email_level')
+    .select('shop_name, notifications_email_level, notifications_email_to')
     .eq('id', userId)
     .maybeSingle()
   const shopName = profile?.shop_name || 'Dovvia'
@@ -313,6 +306,27 @@ async function sendCallEmail(
     return
   }
 
+  // Recipients: explicit list from settings overrides auth email.
+  // If empty / unset, fall back to the auth email (the founder's
+  // signup inbox by default). Trim + dedupe; Mailgun accepts a
+  // comma-separated `to` for fan-out.
+  let recipients: string[] = []
+  const customList = (profile?.notifications_email_to || []) as string[]
+  if (Array.isArray(customList) && customList.length > 0) {
+    recipients = [...new Set(
+      customList.map(s => String(s).trim()).filter(s => s.includes('@')),
+    )]
+  }
+  if (recipients.length === 0) {
+    const { data: userInfo, error: userErr } = await sb.auth.admin.getUserById(userId)
+    const authEmail = userInfo?.user?.email
+    if (userErr || !authEmail) {
+      console.log('[vapi-webhook] email skipped — no recipient:', userErr?.message)
+      return
+    }
+    recipients = [authEmail]
+  }
+
   const fromAddr = Deno.env.get('MAILGUN_FROM') || 'Dovvia <hi@getdovvia.com>'
   const region   = (Deno.env.get('MAILGUN_REGION') || 'us').toLowerCase()
   const apiBase  = region === 'eu' ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net'
@@ -320,7 +334,8 @@ async function sendCallEmail(
 
   const formData = new URLSearchParams()
   formData.set('from', fromAddr)
-  formData.set('to', recipient)
+  // Mailgun accepts comma-separated for one-shot multi-recipient.
+  formData.set('to', recipients.join(','))
   formData.set('subject', buildEmailSubject(row))
   formData.set('html', renderCallEmailHtml(row, shopName, appUrl))
   formData.set('text', renderCallEmailText(row, shopName, appUrl))
@@ -336,7 +351,9 @@ async function sendCallEmail(
     console.log('[vapi-webhook] mailgun send failed:', r.status, t.slice(0, 200))
     return
   }
-  console.log('[vapi-webhook] email sent', { to: recipient.replace(/(^.).+(@.+$)/, '$1***$2') })
+  console.log('[vapi-webhook] email sent', {
+    to: recipients.map(r => r.replace(/(^.).+(@.+$)/, '$1***$2')),
+  })
 }
 
 // Extract the columns we use in the dashboard from Vapi's call object.

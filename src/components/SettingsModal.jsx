@@ -489,16 +489,21 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
 // every call still lands in the dashboard so this is purely an inbox
 // preference, not a data setting.
 function NotificationsPanel() {
-  const [level, setLevel] = useState('all')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving]   = useState(false)
-  const [okMsg, setOkMsg]     = useState('')
-  const [error, setError]     = useState('')
+  const [level, setLevel]       = useState('all')
+  const [emailTo, setEmailTo]   = useState('')   // raw text in the textarea
+  const [loading, setLoading]   = useState(true)
+  const [saving, setSaving]     = useState(false)
+  const [okMsg, setOkMsg]       = useState('')
+  const [error, setError]       = useState('')
 
   useEffect(() => {
     let active = true
     loadNotificationsConfig()
-      .then(cfg => { if (active) setLevel(cfg.email_level || 'all') })
+      .then(cfg => {
+        if (!active) return
+        setLevel(cfg.email_level || 'all')
+        setEmailTo((cfg.email_to || []).join(', '))
+      })
       .catch(e => { if (active) setError(e.message || 'Failed to load preferences') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
@@ -507,7 +512,7 @@ function NotificationsPanel() {
   async function handleSave() {
     setSaving(true); setOkMsg(''); setError('')
     try {
-      await saveNotificationsConfig({ email_level: level })
+      await saveNotificationsConfig({ email_level: level, email_to: emailTo })
       setOkMsg('Saved. New calls will follow this preference.')
     } catch (e) {
       setError(e.message || 'Failed to save')
@@ -525,39 +530,58 @@ function NotificationsPanel() {
   }
 
   return (
-    <div className="space-y-3">
-      <div role="radiogroup" className="space-y-2">
-        {NOTIFICATION_LEVELS.map(opt => {
-          const checked = level === opt.key
-          return (
-            <label
-              key={opt.key}
-              className={`flex items-start gap-3 rounded-xl2 px-4 py-3 border cursor-pointer transition ${checked
-                ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10 ring-2 ring-brand-500/30'
-                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'}`}
-            >
-              <input
-                type="radio"
-                name="notifications-email-level"
-                value={opt.key}
-                checked={checked}
-                onChange={() => setLevel(opt.key)}
-                className="!w-auto mt-1 accent-brand-500"
-              />
-              <div className="min-w-0">
-                <p className="font-semibold text-ink-strong dark:text-slate-100 text-sm">{opt.label}</p>
-                <p className="text-xs text-ink-muted dark:text-slate-400 mt-0.5">{opt.sub}</p>
-              </div>
-            </label>
-          )
-        })}
+    <div className="space-y-5">
+      {/* Recipient list */}
+      <div>
+        <Label>Send notifications to</Label>
+        <textarea
+          rows={2}
+          placeholder="alex@example.com, sasha@example.com"
+          value={emailTo}
+          onChange={e => setEmailTo(e.target.value)}
+          className="font-mono text-xs"
+        />
+        <p className="mt-1.5 text-xs text-ink-muted dark:text-slate-400">
+          Separate with commas or new lines. Leave blank to use your account email.
+        </p>
+      </div>
+
+      {/* Level radio group */}
+      <div>
+        <Label>Which calls to email about</Label>
+        <div role="radiogroup" className="space-y-2 mt-1">
+          {NOTIFICATION_LEVELS.map(opt => {
+            const checked = level === opt.key
+            return (
+              <label
+                key={opt.key}
+                className={`flex items-start gap-3 rounded-xl2 px-4 py-3 border cursor-pointer transition ${checked
+                  ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10 ring-2 ring-brand-500/30'
+                  : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'}`}
+              >
+                <input
+                  type="radio"
+                  name="notifications-email-level"
+                  value={opt.key}
+                  checked={checked}
+                  onChange={() => setLevel(opt.key)}
+                  className="!w-auto mt-1 accent-brand-500"
+                />
+                <div className="min-w-0">
+                  <p className="font-semibold text-ink-strong dark:text-slate-100 text-sm">{opt.label}</p>
+                  <p className="text-xs text-ink-muted dark:text-slate-400 mt-0.5">{opt.sub}</p>
+                </div>
+              </label>
+            )
+          })}
+        </div>
       </div>
 
       {error && <p className="text-xs rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">{error}</p>}
       {okMsg && <p className="text-xs rounded-lg bg-pastel-mint dark:bg-emerald-500/15 text-pastel-mintDeep dark:text-emerald-300 px-3 py-2">{okMsg}</p>}
 
       <button onClick={handleSave} disabled={saving} className="btn-primary w-full">
-        {saving ? 'Saving…' : 'Save preference'}
+        {saving ? 'Saving…' : 'Save preferences'}
       </button>
     </div>
   )

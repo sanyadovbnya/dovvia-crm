@@ -145,10 +145,41 @@ export const NOTIFICATION_LEVELS = [
 
 export const NOTIFICATION_LEVEL_KEYS = NOTIFICATION_LEVELS.map(l => l.key)
 
+// Loosely accepts what the user typed and parses into a clean array of
+// trimmed, deduped, basic-shape-validated emails. Empty input → empty
+// array (falls back to auth email at send-time). Invalid → throws.
+//
+// We accept comma OR newline separators so users can paste from
+// anywhere without thinking about format.
+function parseEmailList(input) {
+  if (input == null) return []
+  const text = Array.isArray(input) ? input.join(',') : String(input)
+  const parts = text
+    .split(/[\s,]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+  const seen = new Set()
+  const out = []
+  // Conservative format check — tolerates everything Gmail / Apple Mail
+  // accept without false-positives on plus-addresses, dots, etc.
+  const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  for (const part of parts) {
+    if (!looksLikeEmail.test(part)) {
+      throw new Error(`"${part}" doesn't look like an email address.`)
+    }
+    const k = part.toLowerCase()
+    if (seen.has(k)) continue
+    seen.add(k)
+    out.push(part)
+  }
+  return out
+}
+
 export async function loadNotificationsConfig() {
   const p = await loadProfile()
   return {
     email_level: p?.notifications_email_level || 'all',
+    email_to:    Array.isArray(p?.notifications_email_to) ? p.notifications_email_to : [],
   }
 }
 
@@ -159,14 +190,25 @@ export async function saveNotificationsConfig(cfg) {
   if (!NOTIFICATION_LEVEL_KEYS.includes(level)) {
     throw new Error(`Invalid notification level: ${level}`)
   }
-  const { error } = await supabase
-    .from('profiles')
-    .update({ notifications_email_level: level, updated_at: new Date().toISOString() })
-    .eq('id', s.user.id)
+
+  // Accept either an array (already parsed) or a raw string the user
+  // typed in the textarea. parseEmailList handles both.
+  let emailList
+  try { emailList = parseEmailList(cfg?.email_to) }
+  catch (e) { throw e }
+
+  const payload = {
+    notifications_email_level: level,
+    notifications_email_to:    emailList.length > 0 ? emailList : null,
+    updated_at: new Date().toISOString(),
+  }
+  const { error } = await supabase.from('profiles').update(payload).eq('id', s.user.id)
   if (error) {
-    // Migration 0018 not applied yet → column missing → friendly message.
     if (/notifications_email_level/i.test(error.message)) {
       throw new Error('Notifications schema missing — apply migration 0018 first.')
+    }
+    if (/notifications_email_to/i.test(error.message)) {
+      throw new Error('Notifications recipient list schema missing — apply migration 0019 first.')
     }
     throw new Error(error.message)
   }
