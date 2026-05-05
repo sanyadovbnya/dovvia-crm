@@ -239,6 +239,31 @@ function renderCallEmailText(row: any, shopName: string, appUrl: string): string
   return lines.join('\n')
 }
 
+// Per-tenant email level → which calls trigger an email. Defaults to
+// 'all' if the column is missing (migration 0018 not yet applied) or the
+// value is null. Returns true if THIS row should produce an email.
+function shouldEmailForLevel(level: string | null | undefined, row: any): boolean {
+  const lvl = (level || 'all').toLowerCase()
+  if (lvl === 'off')    return false
+  if (lvl === 'all')    return true
+  if (lvl === 'booked') return row.appointment_booked === true
+  if (lvl === 'real') {
+    if (row.appointment_booked === true) return true
+    if (row.wants_callback === true)     return true
+    // Length test — call >= 60s implies a real conversation, not a hang-up.
+    if (row.started_at && row.ended_at) {
+      const start = new Date(row.started_at).getTime()
+      const end   = new Date(row.ended_at).getTime()
+      if (Number.isFinite(start) && Number.isFinite(end) && end - start >= 60_000) {
+        return true
+      }
+    }
+    return false
+  }
+  // Unknown level → fail open (better to over-email than to silently drop).
+  return true
+}
+
 async function sendCallEmail(
   sb: ReturnType<typeof createClient>,
   userId: string,
@@ -251,9 +276,9 @@ async function sendCallEmail(
     return
   }
 
-  // Look up the tenant's auth email + shop name. We use auth.admin via
-  // service-role; the tenant never sees this, only their own row gets
-  // emailed.
+  // Look up the tenant's auth email + shop name + notification level.
+  // Service-role; the tenant never sees this. Each tenant only gets
+  // emails about their own calls.
   const { data: userInfo, error: userErr } = await sb.auth.admin.getUserById(userId)
   const recipient = userInfo?.user?.email
   if (userErr || !recipient) {
@@ -262,10 +287,17 @@ async function sendCallEmail(
   }
   const { data: profile } = await sb
     .from('profiles')
-    .select('shop_name')
+    .select('shop_name, notifications_email_level')
     .eq('id', userId)
     .maybeSingle()
   const shopName = profile?.shop_name || 'Dovvia'
+  const level    = profile?.notifications_email_level || 'all'
+
+  // Tenant filter — skip silently when this call doesn't meet their level.
+  if (!shouldEmailForLevel(level, row)) {
+    console.log('[vapi-webhook] email skipped — level filter', { level, booked: row.appointment_booked === true })
+    return
+  }
 
   const fromAddr = Deno.env.get('MAILGUN_FROM') || 'Dovvia <hi@getdovvia.com>'
   const region   = (Deno.env.get('MAILGUN_REGION') || 'us').toLowerCase()

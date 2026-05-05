@@ -118,6 +118,60 @@ export async function saveInvoiceConfig(cfg) {
   if (error) throw new Error(error.message)
 }
 
+// Email-notification levels. Keep aligned with the check constraint in
+// migration 0018 and with shouldEmailForLevel() in vapi-webhook.
+export const NOTIFICATION_LEVELS = [
+  {
+    key: 'all',
+    label: 'Every call',
+    sub: 'Get notified about every completed call, including hang-ups.',
+  },
+  {
+    key: 'real',
+    label: 'Real conversations',
+    sub: 'Booked appointments, callback requests, and calls longer than 60 seconds.',
+  },
+  {
+    key: 'booked',
+    label: 'Booked appointments only',
+    sub: 'Just confirmed bookings — quietest option.',
+  },
+  {
+    key: 'off',
+    label: 'Off',
+    sub: 'No email notifications. Calls still appear in the dashboard.',
+  },
+]
+
+export const NOTIFICATION_LEVEL_KEYS = NOTIFICATION_LEVELS.map(l => l.key)
+
+export async function loadNotificationsConfig() {
+  const p = await loadProfile()
+  return {
+    email_level: p?.notifications_email_level || 'all',
+  }
+}
+
+export async function saveNotificationsConfig(cfg) {
+  const s = await getSession()
+  if (!s) throw new Error('Not authenticated')
+  const level = cfg?.email_level || 'all'
+  if (!NOTIFICATION_LEVEL_KEYS.includes(level)) {
+    throw new Error(`Invalid notification level: ${level}`)
+  }
+  const { error } = await supabase
+    .from('profiles')
+    .update({ notifications_email_level: level, updated_at: new Date().toISOString() })
+    .eq('id', s.user.id)
+  if (error) {
+    // Migration 0018 not applied yet → column missing → friendly message.
+    if (/notifications_email_level/i.test(error.message)) {
+      throw new Error('Notifications schema missing — apply migration 0018 first.')
+    }
+    throw new Error(error.message)
+  }
+}
+
 // Accepts { shop_name, twilio_account_sid, twilio_from_number, twilio_auth_token }.
 // twilio_auth_token is only updated if provided (non-empty); otherwise the existing
 // stored token is kept, so the user doesn't need to re-enter it every edit.

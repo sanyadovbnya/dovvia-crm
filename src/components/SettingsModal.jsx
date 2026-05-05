@@ -4,6 +4,7 @@ import {
   loadTwilioConfig, saveTwilioConfig, loadInvoiceConfig, saveInvoiceConfig,
   uploadBusinessLogo, removeBusinessLogo,
   DEFAULT_INVOICE_EMAIL_SUBJECT, DEFAULT_INVOICE_EMAIL_BODY,
+  loadNotificationsConfig, saveNotificationsConfig, NOTIFICATION_LEVELS,
 } from '../utils/profile'
 import { EMAIL_TEMPLATE_PLACEHOLDERS } from '../utils/invoices'
 import { leadIntakeUrl } from '../utils/leads'
@@ -152,11 +153,12 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
   // Group settings by concern so the modal isn't one tall scroll. Each tab
   // owns one Section; the order is the operator's most-frequent → least.
   const TABS = [
-    { key: 'vapi',     label: 'Receptionist' },
-    { key: 'twilio',   label: 'SMS reminders' },
-    { key: 'invoices', label: 'Invoices' },
-    { key: 'leads',    label: 'Lead intake' },
-    { key: 'billing',  label: 'Billing' },
+    { key: 'vapi',          label: 'Receptionist' },
+    { key: 'twilio',        label: 'SMS reminders' },
+    { key: 'invoices',      label: 'Invoices' },
+    { key: 'leads',         label: 'Lead intake' },
+    { key: 'notifications', label: 'Notifications' },
+    { key: 'billing',       label: 'Billing' },
   ]
   const [activeTab, setActiveTab] = useState('vapi')
 
@@ -459,6 +461,15 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
         </Section>
         )}
 
+        {activeTab === 'notifications' && (
+        <Section
+          title="Email notifications"
+          subtitle="Pick which calls send you an email. Every call still shows up in the dashboard either way."
+        >
+          <NotificationsPanel />
+        </Section>
+        )}
+
         {activeTab === 'billing' && (
         <Section
           title="Subscription & billing"
@@ -469,6 +480,86 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
         )}
       </div>
     </Modal>
+  )
+}
+
+// Per-tenant email-notification level. Backed by
+// profiles.notifications_email_level + the shouldEmailForLevel() filter
+// in the vapi-webhook function. Picking "Off" stops emails entirely;
+// every call still lands in the dashboard so this is purely an inbox
+// preference, not a data setting.
+function NotificationsPanel() {
+  const [level, setLevel] = useState('all')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving]   = useState(false)
+  const [okMsg, setOkMsg]     = useState('')
+  const [error, setError]     = useState('')
+
+  useEffect(() => {
+    let active = true
+    loadNotificationsConfig()
+      .then(cfg => { if (active) setLevel(cfg.email_level || 'all') })
+      .catch(e => { if (active) setError(e.message || 'Failed to load preferences') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  async function handleSave() {
+    setSaving(true); setOkMsg(''); setError('')
+    try {
+      await saveNotificationsConfig({ email_level: level })
+      setOkMsg('Saved. New calls will follow this preference.')
+    } catch (e) {
+      setError(e.message || 'Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="text-xs text-ink-muted dark:text-slate-400 flex items-center gap-2">
+        <Icons.Spinner /> Loading preferences…
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div role="radiogroup" className="space-y-2">
+        {NOTIFICATION_LEVELS.map(opt => {
+          const checked = level === opt.key
+          return (
+            <label
+              key={opt.key}
+              className={`flex items-start gap-3 rounded-xl2 px-4 py-3 border cursor-pointer transition ${checked
+                ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10 ring-2 ring-brand-500/30'
+                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'}`}
+            >
+              <input
+                type="radio"
+                name="notifications-email-level"
+                value={opt.key}
+                checked={checked}
+                onChange={() => setLevel(opt.key)}
+                className="!w-auto mt-1 accent-brand-500"
+              />
+              <div className="min-w-0">
+                <p className="font-semibold text-ink-strong dark:text-slate-100 text-sm">{opt.label}</p>
+                <p className="text-xs text-ink-muted dark:text-slate-400 mt-0.5">{opt.sub}</p>
+              </div>
+            </label>
+          )
+        })}
+      </div>
+
+      {error && <p className="text-xs rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">{error}</p>}
+      {okMsg && <p className="text-xs rounded-lg bg-pastel-mint dark:bg-emerald-500/15 text-pastel-mintDeep dark:text-emerald-300 px-3 py-2">{okMsg}</p>}
+
+      <button onClick={handleSave} disabled={saving} className="btn-primary w-full">
+        {saving ? 'Saving…' : 'Save preference'}
+      </button>
+    </div>
   )
 }
 
