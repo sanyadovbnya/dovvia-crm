@@ -102,6 +102,197 @@ function asString(v: unknown): string | null {
   return s === '' ? null : s
 }
 
+// ---------- Email notification (Mailgun) ----------
+//
+// Fires after a successful upsert on end-of-call-report. Sends a clean
+// HTML+text email to the tenant's auth email summarizing the call —
+// caller, when, what they need, booked/waiting status, AI summary, and
+// a deep link back to the dashboard.
+//
+// Failures are swallowed (logged, not thrown) so a Mailgun outage never
+// drops a call from the mirror.
+
+function escapeHtml(s: unknown): string {
+  return String(s ?? '').replace(/[<>&"']/g, c => ({
+    '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;',
+  } as Record<string, string>)[c])
+}
+
+function fmtPhoneEmail(raw: string | null | undefined): string {
+  if (!raw) return ''
+  const d = String(raw).replace(/\D/g, '')
+  if (d.length < 10) return String(raw)
+  const last10 = d.slice(-10)
+  return `(${last10.slice(0, 3)}) ${last10.slice(3, 6)}-${last10.slice(6)}`
+}
+
+function fmtDateTimeEmail(iso: string | null | undefined): string {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    return d.toLocaleString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true,
+      timeZone: 'America/Los_Angeles',
+    })
+  } catch { return '' }
+}
+
+function fmtDurationEmail(startIso: string | null | undefined, endIso: string | null | undefined): string {
+  if (!startIso || !endIso) return ''
+  const start = new Date(startIso).getTime()
+  const end   = new Date(endIso).getTime()
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return ''
+  const seconds = Math.round((end - start) / 1000)
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function buildEmailSubject(row: any): string {
+  const name = row.customer_name || fmtPhoneEmail(row.customer_phone) || 'Unknown caller'
+  if (row.appointment_booked === true) {
+    const when = [row.appointment_date, row.appointment_time].filter(Boolean).join(' at ')
+    return when ? `New call: ${name} · Booked ${when}` : `New call: ${name} · Booked`
+  }
+  return `New call: ${name}`
+}
+
+function renderCallEmailHtml(row: any, shopName: string, appUrl: string): string {
+  const caller   = row.customer_name || 'Unknown caller'
+  const phoneFmt = fmtPhoneEmail(row.customer_phone)
+  const dateStr  = fmtDateTimeEmail(row.started_at)
+  const duration = fmtDurationEmail(row.started_at, row.ended_at)
+  const booked   = row.appointment_booked === true
+  const apptWhen = booked ? [row.appointment_date, row.appointment_time].filter(Boolean).join(' at ') : null
+  const dashUrl  = `${appUrl}/dashboard`
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>${escapeHtml(buildEmailSubject(row))}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #0F172A; margin: 0; padding: 0; background: #F5F7FB;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 24px 20px;">
+    <div style="background: #FFFFFF; border-radius: 12px; padding: 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+      <p style="margin: 0; color: #64748B; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">${escapeHtml(shopName)}</p>
+      <h1 style="margin: 8px 0 16px; font-size: 22px; line-height: 1.3; color: #0F172A;">New call from ${escapeHtml(caller)}</h1>
+      ${booked
+        ? `<div style="display: inline-block; background: #D1FAE5; color: #047857; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;">✓ Booked${apptWhen ? ' · ' + escapeHtml(apptWhen) : ''}</div>`
+        : `<div style="display: inline-block; background: #FEF3C7; color: #92400E; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;">⏳ Waiting on callback</div>`}
+      <table cellpadding="0" cellspacing="0" style="margin-top: 24px; width: 100%; border-collapse: collapse;">
+        ${phoneFmt ? `<tr>
+          <td style="padding: 6px 0; color: #64748B; font-size: 13px; width: 90px;">Phone</td>
+          <td style="padding: 6px 0; font-size: 14px;"><a href="tel:${escapeHtml(row.customer_phone || '')}" style="color: #C9791F; text-decoration: none; font-weight: 500;">${escapeHtml(phoneFmt)}</a></td>
+        </tr>` : ''}
+        ${dateStr ? `<tr>
+          <td style="padding: 6px 0; color: #64748B; font-size: 13px;">When</td>
+          <td style="padding: 6px 0; font-size: 14px; font-weight: 500;">${escapeHtml(dateStr)}${duration ? ' · ' + escapeHtml(duration) : ''}</td>
+        </tr>` : ''}
+        ${row.service_type ? `<tr>
+          <td style="padding: 6px 0; color: #64748B; font-size: 13px;">Service</td>
+          <td style="padding: 6px 0; font-size: 14px; font-weight: 500;">${escapeHtml(row.service_type)}</td>
+        </tr>` : ''}
+        ${row.problem ? `<tr>
+          <td style="padding: 6px 0; color: #64748B; font-size: 13px; vertical-align: top;">Problem</td>
+          <td style="padding: 6px 0; font-size: 14px;">${escapeHtml(row.problem)}</td>
+        </tr>` : ''}
+      </table>
+      ${row.summary ? `<div style="margin-top: 20px; padding: 16px; background: #F8FAFC; border-radius: 8px;">
+        <p style="margin: 0 0 6px; color: #64748B; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Summary</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #334155;">${escapeHtml(row.summary)}</p>
+      </div>` : ''}
+      <a href="${dashUrl}" style="display: inline-block; margin-top: 24px; background: #E8952E; color: #FFFFFF; padding: 11px 22px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Open in Dashboard →</a>
+    </div>
+    <p style="margin: 16px 0 0; text-align: center; color: #94A3B8; font-size: 12px;">
+      Sent by <a href="${dashUrl}" style="color: #94A3B8;">Dovvia</a> · You're receiving this because you have call notifications enabled.
+    </p>
+  </div>
+</body>
+</html>`
+}
+
+function renderCallEmailText(row: any, shopName: string, appUrl: string): string {
+  const caller   = row.customer_name || 'Unknown caller'
+  const phoneFmt = fmtPhoneEmail(row.customer_phone)
+  const dateStr  = fmtDateTimeEmail(row.started_at)
+  const duration = fmtDurationEmail(row.started_at, row.ended_at)
+  const booked   = row.appointment_booked === true
+  const apptWhen = booked ? [row.appointment_date, row.appointment_time].filter(Boolean).join(' at ') : null
+  const lines: string[] = [
+    shopName.toUpperCase(),
+    '',
+    `New call from ${caller}`,
+    booked ? `✓ Booked${apptWhen ? ` · ${apptWhen}` : ''}` : '⏳ Waiting on callback',
+    '',
+  ]
+  if (phoneFmt)         lines.push(`Phone:    ${phoneFmt}`)
+  if (dateStr)          lines.push(`When:     ${dateStr}${duration ? ` · ${duration}` : ''}`)
+  if (row.service_type) lines.push(`Service:  ${row.service_type}`)
+  if (row.problem)      lines.push(`Problem:  ${row.problem}`)
+  if (row.summary) {
+    lines.push('', 'SUMMARY', row.summary)
+  }
+  lines.push('', `Open in Dashboard: ${appUrl}/dashboard`)
+  return lines.join('\n')
+}
+
+async function sendCallEmail(
+  sb: ReturnType<typeof createClient>,
+  userId: string,
+  row: any,
+): Promise<void> {
+  const apiKey = Deno.env.get('MAILGUN_API_KEY')
+  const domain = Deno.env.get('MAILGUN_DOMAIN')
+  if (!apiKey || !domain) {
+    console.log('[vapi-webhook] email skipped — Mailgun env vars not set')
+    return
+  }
+
+  // Look up the tenant's auth email + shop name. We use auth.admin via
+  // service-role; the tenant never sees this, only their own row gets
+  // emailed.
+  const { data: userInfo, error: userErr } = await sb.auth.admin.getUserById(userId)
+  const recipient = userInfo?.user?.email
+  if (userErr || !recipient) {
+    console.log('[vapi-webhook] email skipped — no recipient:', userErr?.message)
+    return
+  }
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('shop_name')
+    .eq('id', userId)
+    .maybeSingle()
+  const shopName = profile?.shop_name || 'Dovvia'
+
+  const fromAddr = Deno.env.get('MAILGUN_FROM') || 'Dovvia <hi@getdovvia.com>'
+  const region   = (Deno.env.get('MAILGUN_REGION') || 'us').toLowerCase()
+  const apiBase  = region === 'eu' ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net'
+  const appUrl   = Deno.env.get('APP_URL') || 'https://app.getdovvia.com'
+
+  const formData = new URLSearchParams()
+  formData.set('from', fromAddr)
+  formData.set('to', recipient)
+  formData.set('subject', buildEmailSubject(row))
+  formData.set('html', renderCallEmailHtml(row, shopName, appUrl))
+  formData.set('text', renderCallEmailText(row, shopName, appUrl))
+  formData.set('o:tag', 'call-notification')
+
+  const r = await fetch(`${apiBase}/v3/${domain}/messages`, {
+    method: 'POST',
+    headers: { Authorization: 'Basic ' + btoa(`api:${apiKey}`) },
+    body: formData,
+  })
+  if (!r.ok) {
+    const t = await r.text().catch(() => '')
+    console.log('[vapi-webhook] mailgun send failed:', r.status, t.slice(0, 200))
+    return
+  }
+  console.log('[vapi-webhook] email sent', { to: recipient.replace(/(^.).+(@.+$)/, '$1***$2') })
+}
+
 // Extract the columns we use in the dashboard from Vapi's call object.
 // Anything we miss survives in vapi_raw, so we can re-derive later.
 function buildRow(userId: string, call: any) {
@@ -233,5 +424,19 @@ Deno.serve(async (req) => {
     has_ended:   !!row.ended_at,
     end_reason:  row.end_reason,
   })
+
+  // Email notification — only on end-of-call-report. Status-update fires
+  // many times mid-call; we don't want N emails per call. Errors are
+  // logged but never surface — the call mirror is the primary contract,
+  // email is "nice to have" alongside it.
+  const msgType = body?.message?.type
+  if (msgType === 'end-of-call-report') {
+    try {
+      await sendCallEmail(sb, userId, row)
+    } catch (e) {
+      console.log('[vapi-webhook] email send threw:', (e as Error).message)
+    }
+  }
+
   return json({ ok: true, vapi_id: call.id })
 })
