@@ -8,6 +8,7 @@ import {
 import { EMAIL_TEMPLATE_PLACEHOLDERS } from '../utils/invoices'
 import { leadIntakeUrl } from '../utils/leads'
 import { vapiWebhookUrl, syncFromVapi } from '../utils/callsDb'
+import { loadBilling, openBillingPortal, PLAN_BY_KEY } from '../utils/billing'
 import { Modal } from './AppointmentModal'
 import { Icons } from './Icons'
 
@@ -155,6 +156,7 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
     { key: 'twilio',   label: 'SMS reminders' },
     { key: 'invoices', label: 'Invoices' },
     { key: 'leads',    label: 'Lead intake' },
+    { key: 'billing',  label: 'Billing' },
   ]
   const [activeTab, setActiveTab] = useState('vapi')
 
@@ -456,8 +458,111 @@ export default function SettingsModal({ currentVapiKey, onSaveVapiKey, onClose }
           <LeadIntakeRows secret={inv.lead_intake_secret} />
         </Section>
         )}
+
+        {activeTab === 'billing' && (
+        <Section
+          title="Subscription & billing"
+          subtitle="Update your card, change plans, view invoices, or cancel — all on Stripe-hosted pages. Dovvia never sees your card."
+        >
+          <BillingPanel />
+        </Section>
+        )}
       </div>
     </Modal>
+  )
+}
+
+// Surfaces the tenant's current plan + status and a button to open the
+// Stripe Customer Portal. The portal handles card updates, plan changes,
+// invoices, cancellation — we don't reimplement any of that here.
+function BillingPanel() {
+  const [billing, setBilling]   = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [opening, setOpening]   = useState(false)
+  const [error, setError]       = useState('')
+
+  useEffect(() => {
+    let active = true
+    loadBilling()
+      .then(b => { if (active) setBilling(b) })
+      .catch(e => { if (active) setError(e.message || 'Failed to load billing') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  async function handlePortal() {
+    setOpening(true); setError('')
+    try {
+      const url = await openBillingPortal()
+      window.location.href = url
+    } catch (e) {
+      setError(e.message || 'Failed to open billing portal')
+      setOpening(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="text-xs text-ink-muted dark:text-slate-400 flex items-center gap-2">
+        <Icons.Spinner /> Loading billing…
+      </div>
+    )
+  }
+
+  const plan      = billing?.subscription_plan ? PLAN_BY_KEY[billing.subscription_plan] : null
+  const status    = billing?.subscription_status || 'inactive'
+  const periodEnd = billing?.current_period_end
+    ? new Date(billing.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null
+
+  // Color the status pill by health: active=mint, past_due=peach,
+  // anything else (canceled/incomplete/inactive) = coral.
+  const tone = status === 'active' || status === 'trialing' ? 'mint'
+             : status === 'past_due' ? 'peach'
+             : 'coral'
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl2 bg-surface-muted dark:bg-slate-800/60 px-4 py-3 space-y-2 text-sm">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-ink-muted dark:text-slate-400">Plan</span>
+          <span className="font-semibold text-ink-strong dark:text-slate-100">
+            {plan ? `${plan.name} — $${plan.price}/mo` : 'No active plan'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-ink-muted dark:text-slate-400">Status</span>
+          <span className={`badge badge-${tone === 'mint' ? 'green' : tone === 'peach' ? 'yellow' : 'red'} normal-case tracking-normal`}>
+            {status.replace('_', ' ')}
+          </span>
+        </div>
+        {periodEnd && (
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-ink-muted dark:text-slate-400">Renews</span>
+            <span className="font-medium text-ink-strong dark:text-slate-200 tabular-nums">{periodEnd}</span>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <p className="text-xs rounded-lg bg-pastel-coral dark:bg-red-500/15 text-pastel-coralDeep dark:text-red-300 px-3 py-2">{error}</p>
+      )}
+
+      <button
+        type="button"
+        onClick={handlePortal}
+        disabled={opening || !billing?.stripe_customer_id}
+        className="btn-primary w-full"
+      >
+        {opening ? <><Icons.Spinner /> Opening…</> : <>Manage billing on Stripe <Icons.ChevronRight /></>}
+      </button>
+
+      {!billing?.stripe_customer_id && (
+        <p className="text-xs text-ink-muted dark:text-slate-400">
+          You don&apos;t have a Stripe customer record yet. This shouldn&apos;t happen if you reached the dashboard — try signing out and back in, or contact support.
+        </p>
+      )}
+    </div>
   )
 }
 

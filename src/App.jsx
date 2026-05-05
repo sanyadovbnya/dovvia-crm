@@ -11,11 +11,13 @@ import { fetchResolutions, indexResolutions } from './utils/resolutions'
 import { getSession, onAuthChange, logout } from './utils/auth'
 import { loadVapiKey, saveVapiKey, loadProfile } from './utils/profile'
 import { ownerFirstName } from './utils/sms'
+import { loadBilling, isSubscriptionActive } from './utils/billing'
 import LoginScreen from './components/LoginScreen'
 import RegisterScreen from './components/RegisterScreen'
 import ForgotPasswordScreen from './components/ForgotPasswordScreen'
 import ReviewPage from './components/ReviewPage'
 import SetupScreen from './components/SetupScreen'
+import SubscribeScreen from './components/SubscribeScreen'
 import StatCard from './components/StatCard'
 import CallRow from './components/CallRow'
 import CallDetail from './components/CallDetail'
@@ -38,6 +40,11 @@ import { Icons } from './components/Icons'
 function Dashboard({ session, onLogout }) {
   const [apiKey, setApiKey] = useState('')
   const [keyLoading, setKeyLoading] = useState(true)
+  // Subscription state — null while loading, then a row from profiles
+  // (or null if no row yet). The paywall gate below uses this to decide
+  // whether to render SubscribeScreen or fall through to the dashboard.
+  const [billing, setBilling] = useState(null)
+  const [billingLoading, setBillingLoading] = useState(true)
   // Hydrate the calls list from localStorage synchronously so the dashboard
   // paints something useful before any network call lands. The background
   // fetch in loadCalls then catches new calls and any in-flight updates.
@@ -89,6 +96,48 @@ function Dashboard({ session, onLogout }) {
       setApiKey(key)
       setKeyLoading(false)
     })
+  }, [])
+
+  // Load billing state for the paywall gate. Refreshes whenever the
+  // session user changes (login / token swap).
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let active = true
+    loadBilling()
+      .then(b => { if (active) setBilling(b) })
+      .catch(() => { if (active) setBilling(null) })
+      .finally(() => { if (active) setBillingLoading(false) })
+    return () => { active = false }
+  }, [session?.user?.id])
+
+  // Stripe Checkout post-payment poll. After a successful checkout Stripe
+  // redirects here with ?checkout=success — but the webhook that flips
+  // subscription_status is async (typically <1s, occasionally 3-5s on
+  // a cold edge function). Poll for up to ~30s until we see the active
+  // status, then strip the param so a refresh doesn't re-trigger.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('checkout') !== 'success') return
+    let cancelled = false
+    let attempts = 0
+    const tick = async () => {
+      if (cancelled) return
+      try {
+        const b = await loadBilling()
+        if (b && isSubscriptionActive(b)) {
+          if (!cancelled) {
+            setBilling(b)
+            window.history.replaceState({}, '', '/dashboard')
+          }
+          return
+        }
+      } catch { /* keep polling */ }
+      attempts += 1
+      if (attempts >= 15) return  // ~30s ceiling, give up gracefully
+      setTimeout(tick, 2000)
+    }
+    tick()
+    return () => { cancelled = true }
   }, [])
 
   const loadCalls = useCallback(async () => {
@@ -178,11 +227,26 @@ function Dashboard({ session, onLogout }) {
     setShowSettings(false)
   }
 
-  if (keyLoading) {
+  if (billingLoading || keyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-ink-faint">
         <Icons.Spinner />
       </div>
+    )
+  }
+
+  // Paywall gate. If the tenant isn't on an active subscription, bounce
+  // them to the SubscribeScreen — they can't reach the Vapi setup or
+  // dashboard until they pay (or get manually grandfathered via
+  // profiles.subscription_status='active').
+  if (!isSubscriptionActive(billing)) {
+    const params = new URLSearchParams(window.location.search)
+    return (
+      <SubscribeScreen
+        status={billing?.subscription_status}
+        cancelled={params.get('checkout') === 'cancel'}
+        onLogout={onLogout}
+      />
     )
   }
 
