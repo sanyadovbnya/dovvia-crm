@@ -159,7 +159,14 @@ function buildEmailSubject(row: any): string {
 }
 
 function renderCallEmailHtml(row: any, shopName: string, appUrl: string): string {
-  const caller   = row.customer_name || 'Unknown caller'
+  // Customer name is the first choice; if Vapi's structured-output
+  // extraction missed it (the AI heard a name but didn't save it to
+  // analysis.structuredData.customerName), fall back to the formatted
+  // phone — much more useful than "Unknown caller". The phone almost
+  // always exists since Twilio gives us caller ID for free.
+  const caller   = row.customer_name
+    || fmtPhoneEmail(row.customer_phone)
+    || 'Unknown caller'
   const phoneFmt = fmtPhoneEmail(row.customer_phone)
   const dateStr  = fmtDateTimeEmail(row.started_at)
   const duration = fmtDurationEmail(row.started_at, row.ended_at)
@@ -215,7 +222,14 @@ function renderCallEmailHtml(row: any, shopName: string, appUrl: string): string
 }
 
 function renderCallEmailText(row: any, shopName: string, appUrl: string): string {
-  const caller   = row.customer_name || 'Unknown caller'
+  // Customer name is the first choice; if Vapi's structured-output
+  // extraction missed it (the AI heard a name but didn't save it to
+  // analysis.structuredData.customerName), fall back to the formatted
+  // phone — much more useful than "Unknown caller". The phone almost
+  // always exists since Twilio gives us caller ID for free.
+  const caller   = row.customer_name
+    || fmtPhoneEmail(row.customer_phone)
+    || 'Unknown caller'
   const phoneFmt = fmtPhoneEmail(row.customer_phone)
   const dateStr  = fmtDateTimeEmail(row.started_at)
   const duration = fmtDurationEmail(row.started_at, row.ended_at)
