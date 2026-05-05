@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dovvia — AI receptionist for repair shops</title>
+  <meta name="description" content="Max answers every call 24/7, books appointments to your calendar, and emails you a summary within 60 seconds. Built for auto, computer, and trade repair shops." />
+  <meta property="og:title" content="Dovvia — AI receptionist for repair shops" />
+  <meta property="og:description" content="Stop missing calls. AI answers 24/7, books appointments, and tracks every job in one place." />
+  <meta property="og:image" content="https://getdovvia.com/assets/og-image.png" />
+  <meta property="og:url" content="https://getdovvia.com/en.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="alternate" hreflang="en" href="https://getdovvia.com/en.html" />
+  <link rel="alternate" hreflang="ru" href="https://getdovvia.com/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand:   { 50: '#FEF6EC', 100: '#FCE7C7', 200: '#F9CE8F', 400: '#EFA03E', 500: '#E8952E', 600: '#C9791F', 700: '#9F5E18', 900: '#4A2B0B' },
+            surface: { page: '#F5F7FB', card: '#FFFFFF', muted: '#EEF1F7' },
+            ink:     { strong: '#0F172A', base: '#334155', muted: '#64748B', faint: '#94A3B8' },
+            mint:    { 100: '#D1FAE5', 700: '#047857' },
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          boxShadow: {
+            card: '0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.04)',
+            pop:  '0 24px 56px rgba(15,23,42,0.12)',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    html { scroll-behavior: smooth; }
+    .placeholder-img {
+      background: linear-gradient(135deg, #F5F7FB 0%, #EEF1F7 100%);
+      border: 2px dashed #CBD5E1;
+      display: flex; align-items: center; justify-content: center;
+      color: #94A3B8; font-size: 14px; font-weight: 500;
+    }
+  </style>
+</head>
+<body class="bg-white text-ink-base">
+
+  <!-- ========== NAV ========== -->
+  <nav class="sticky top-0 z-30 bg-white/85 backdrop-blur border-b border-slate-100">
+    <div class="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <a href="/en.html" class="flex items-center gap-2">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <span class="font-bold text-ink-strong">Dovvia</span>
+      </a>
+      <div class="flex items-center gap-2 sm:gap-4 text-sm font-medium">
+        <a href="#pricing" class="hidden sm:inline text-ink-base hover:text-ink-strong transition">Pricing</a>
+        <a href="#faq" class="hidden sm:inline text-ink-base hover:text-ink-strong transition">FAQ</a>
+        <a href="/" class="text-ink-muted hover:text-ink-strong transition" hreflang="ru">RU</a>
+        <a href="https://app.getdovvia.com/login" class="text-ink-base hover:text-ink-strong transition">Sign in</a>
+        <a href="#cta" class="inline-flex items-center gap-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow-card transition">Demo</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========== HERO ========== -->
+  <section class="px-5 sm:px-6 lg:px-8 pt-12 sm:pt-20 pb-16 sm:pb-24">
+    <div class="max-w-6xl mx-auto text-center">
+      <div class="inline-flex items-center gap-2 bg-brand-50 text-brand-700 text-xs font-bold uppercase tracking-wider rounded-full px-3 py-1 mb-6">
+        <span class="h-2 w-2 rounded-full bg-brand-500 animate-pulse"></span>
+        Beta access open · 5 spots left
+      </div>
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-ink-strong tracking-tight leading-tight mb-6">
+        Stop missing calls.<br />Book more jobs.
+      </h1>
+      <p class="text-lg sm:text-xl text-ink-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+        <span class="font-semibold text-ink-strong">Max</span> answers every call 24/7, books appointments to your calendar, and emails you a summary within seconds of hangup.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center items-center mb-12">
+        <a href="#cta" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-7 py-3.5 rounded-xl shadow-card transition text-base">
+          Book a 15-min demo
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+        <a href="#how" class="inline-flex items-center gap-2 text-ink-base hover:text-ink-strong font-semibold px-5 py-3.5 transition">
+          See how it works
+        </a>
+      </div>
+
+      <div class="mt-4 mx-auto max-w-4xl">
+        <!-- TODO: replace with real screenshot -->
+        <div class="placeholder-img rounded-2xl shadow-pop" style="aspect-ratio: 16/10;">
+          [ Dashboard screenshot — add later ]
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PROBLEM ========== -->
+  <section class="bg-surface-page px-5 sm:px-6 lg:px-8 py-16 sm:py-20">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
+          Every missed call<br />is a lost customer.
+        </h2>
+        <p class="text-ink-muted max-w-2xl mx-auto">
+          While you're under a car or in a meeting, your phone goes silent. Customers call your competitor instead.
+        </p>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-5">
+        <div class="bg-white rounded-2xl p-7 shadow-card">
+          <p class="text-4xl font-extrabold text-brand-600 mb-2">12+</p>
+          <p class="font-semibold text-ink-strong mb-1">calls per day</p>
+          <p class="text-sm text-ink-muted">into the average shop — most while you're working.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-7 shadow-card">
+          <p class="text-4xl font-extrabold text-brand-600 mb-2">35%</p>
+          <p class="font-semibold text-ink-strong mb-1">book with the first to answer</p>
+          <p class="text-sm text-ink-muted">No callback in 5 minutes? Customer's gone.</p>
+        </div>
+        <div class="bg-white rounded-2xl p-7 shadow-card">
+          <p class="text-4xl font-extrabold text-brand-600 mb-2">$200+</p>
+          <p class="font-semibold text-ink-strong mb-1">average ticket</p>
+          <p class="text-sm text-ink-muted">walked out the door with each missed call.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== HOW IT WORKS ========== -->
+  <section id="how" class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
+          How Dovvia works
+        </h2>
+        <p class="text-ink-muted max-w-2xl mx-auto">
+          Live in 24 hours. Zero setup on your side.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-5">
+        <Step n="1">
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Max answers your number</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Keep your existing number. Max picks up, asks how he can help, and captures the customer's contact info.</p>
+        </Step>
+        <Step n="2">
+          <h3 class="text-lg font-bold text-ink-strong mb-2">Books appointments automatically</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Max sees your calendar and books open slots. Address, problem, time — all captured in one place.</p>
+        </Step>
+        <Step n="3">
+          <h3 class="text-lg font-bold text-ink-strong mb-2">You get notified instantly</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Email or SMS with a call summary lands in your inbox within 60 seconds. Full call history in the dashboard.</p>
+        </Step>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== DEMO ========== -->
+  <section class="bg-surface-page px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
+          Hear Max in action
+        </h2>
+        <p class="text-ink-muted max-w-2xl mx-auto">
+          A real call into a real shop. 60 seconds from ring to booked appointment.
+        </p>
+      </div>
+      <div class="placeholder-img rounded-2xl shadow-pop" style="aspect-ratio: 16/9;">
+        [ Demo video — add later ]
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PRICING ========== -->
+  <section id="pricing" class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
+          Simple pricing
+        </h2>
+        <p class="text-ink-muted max-w-2xl mx-auto">
+          $500 one-time setup + a monthly plan. First 5 customers — <span class="font-semibold text-brand-600">25% off forever</span> with code <code class="font-mono bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded">FOUNDER</code>.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-5">
+        <!-- Starter -->
+        <div class="bg-white rounded-2xl p-7 ring-1 ring-slate-200 shadow-card flex flex-col">
+          <h3 class="text-xl font-bold text-ink-strong">Starter</h3>
+          <div class="mt-3 flex items-baseline gap-1">
+            <span class="text-4xl font-extrabold text-ink-strong">$149</span>
+            <span class="text-ink-muted">/mo</span>
+          </div>
+          <p class="mt-1 text-xs text-ink-muted">+ $500 setup</p>
+          <ul class="mt-5 space-y-2.5 text-sm flex-1">
+            <Feat>1 phone number</Feat>
+            <Feat>1 location</Feat>
+            <Feat>Up to 150 calls/month</Feat>
+            <Feat>Email + SMS notifications</Feat>
+            <Feat>Live dashboard with call history</Feat>
+          </ul>
+          <a href="#cta" class="mt-6 block text-center bg-surface-muted hover:bg-slate-200 text-ink-strong font-semibold px-5 py-3 rounded-xl transition">Book a demo</a>
+        </div>
+
+        <!-- Pro -->
+        <div class="relative bg-white rounded-2xl p-7 ring-2 ring-brand-500 shadow-pop flex flex-col">
+          <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full px-3 py-1 shadow-card whitespace-nowrap">★ Most popular</span>
+          <h3 class="text-xl font-bold text-ink-strong">Pro</h3>
+          <div class="mt-3 flex items-baseline gap-1">
+            <span class="text-4xl font-extrabold text-ink-strong">$349</span>
+            <span class="text-ink-muted">/mo</span>
+          </div>
+          <p class="mt-1 text-xs text-ink-muted">+ $500 setup</p>
+          <ul class="mt-5 space-y-2.5 text-sm flex-1">
+            <Feat>Unlimited calls</Feat>
+            <Feat>Stripe invoicing for customers</Feat>
+            <Feat>SMS appointment reminders</Feat>
+            <Feat>Customer map with pins</Feat>
+            <Feat>Priority support</Feat>
+          </ul>
+          <a href="#cta" class="mt-6 block text-center bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-3 rounded-xl transition shadow-card">Book a demo</a>
+        </div>
+
+        <!-- Multi-shop -->
+        <div class="bg-white rounded-2xl p-7 ring-1 ring-slate-200 shadow-card flex flex-col">
+          <h3 class="text-xl font-bold text-ink-strong">Multi-shop</h3>
+          <div class="mt-3 flex items-baseline gap-1">
+            <span class="text-4xl font-extrabold text-ink-strong">$799</span>
+            <span class="text-ink-muted">/mo</span>
+          </div>
+          <p class="mt-1 text-xs text-ink-muted">+ $500 setup</p>
+          <ul class="mt-5 space-y-2.5 text-sm flex-1">
+            <Feat>Up to 3 locations included</Feat>
+            <Feat>Multi-location dashboard</Feat>
+            <Feat>Dedicated account manager</Feat>
+            <Feat>+$200/each additional location</Feat>
+          </ul>
+          <a href="#cta" class="mt-6 block text-center bg-surface-muted hover:bg-slate-200 text-ink-strong font-semibold px-5 py-3 rounded-xl transition">Book a demo</a>
+        </div>
+      </div>
+
+      <p class="text-center text-xs text-ink-muted mt-8 max-w-2xl mx-auto">
+        Setup fee covers number provisioning, AI configuration, and 30 days of dedicated support. Non-refundable once activated. Cancel anytime through the customer portal.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========== TESTIMONIAL ========== -->
+  <section class="bg-surface-page px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="max-w-4xl mx-auto">
+      <div class="bg-white rounded-2xl p-8 sm:p-10 shadow-card">
+        <svg class="text-brand-500 mb-4" width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 12.5h-2v-3a3 3 0 0 1 3-3v-2a5 5 0 0 0-5 5v6h4v-3zm9 0h-2v-3a3 3 0 0 1 3-3v-2a5 5 0 0 0-5 5v6h4v-3z"/></svg>
+        <p class="text-xl sm:text-2xl text-ink-strong font-medium leading-relaxed mb-6">
+          "Before Dovvia I'd drop a wrench every time the phone rang. Now I check the app at lunch — every call recorded, every appointment booked for tomorrow. Haven't missed a customer in a month."
+        </p>
+        <div class="flex items-center gap-3">
+          <div class="h-12 w-12 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold">
+            M
+          </div>
+          <div>
+            <p class="font-bold text-ink-strong">Mike</p>
+            <p class="text-sm text-ink-muted">Mike's Repair Shop, Spokane WA</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FOUNDER ========== -->
+  <section class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="placeholder-img mx-auto rounded-full" style="height: 120px; width: 120px;">[ Photo ]</div>
+      <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mt-6 mb-4">
+        Hey, I'm Alex.
+      </h2>
+      <p class="text-ink-base text-lg leading-relaxed">
+        I built Dovvia because my friend Mike was losing $200 every time he couldn't get to the phone. Now Dovvia works for him 24/7 — and I want it to work for every shop owner who's tired of losing calls.
+      </p>
+      <p class="text-ink-base text-lg leading-relaxed mt-3">
+        These first 5 customers are mine. I personally onboard each one and stay on call for the first month. Talk to me.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========== FAQ ========== -->
+  <section id="faq" class="bg-surface-page px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight text-center mb-12">
+        Common questions
+      </h2>
+      <div class="space-y-4">
+        <details class="bg-white rounded-xl p-5 shadow-card group">
+          <summary class="font-semibold text-ink-strong cursor-pointer flex justify-between items-center">
+            How long does setup take?
+            <span class="text-brand-500 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-3 text-ink-base text-sm leading-relaxed">24-48 hours. I'll port your existing number (or give you a new one), train Max on your shop, and walk you through everything in a 30-minute call.</p>
+        </details>
+        <details class="bg-white rounded-xl p-5 shadow-card group">
+          <summary class="font-semibold text-ink-strong cursor-pointer flex justify-between items-center">
+            Do I have to change my phone number?
+            <span class="text-brand-500 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-3 text-ink-base text-sm leading-relaxed">No. Keep your existing number. We forward calls to Max only when you don't pick up — or you can fully route to AI and have both options.</p>
+        </details>
+        <details class="bg-white rounded-xl p-5 shadow-card group">
+          <summary class="font-semibold text-ink-strong cursor-pointer flex justify-between items-center">
+            What languages does Max speak?
+            <span class="text-brand-500 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-3 text-ink-base text-sm leading-relaxed">English natively. Spanish and Russian are in development.</p>
+        </details>
+        <details class="bg-white rounded-xl p-5 shadow-card group">
+          <summary class="font-semibold text-ink-strong cursor-pointer flex justify-between items-center">
+            What if Max gets confused or can't help?
+            <span class="text-brand-500 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-3 text-ink-base text-sm leading-relaxed">Max captures the contact and marks the call as "waiting on callback." You call them back when convenient — they already know you got their request.</p>
+        </details>
+        <details class="bg-white rounded-xl p-5 shadow-card group">
+          <summary class="font-semibold text-ink-strong cursor-pointer flex justify-between items-center">
+            What if I don't like it?
+            <span class="text-brand-500 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-3 text-ink-base text-sm leading-relaxed">Cancel anytime through the customer portal. Setup fee is non-refundable once activated (it covers 4-6 hours of dedicated configuration work).</p>
+        </details>
+        <details class="bg-white rounded-xl p-5 shadow-card group">
+          <summary class="font-semibold text-ink-strong cursor-pointer flex justify-between items-center">
+            Can I send only some calls to AI?
+            <span class="text-brand-500 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-3 text-ink-base text-sm leading-relaxed">Yes. Set up your phone provider so AI only answers when you're busy or after-hours. Hybrid mode works great.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CTA ========== -->
+  <section id="cta" class="px-5 sm:px-6 lg:px-8 py-20 sm:py-28">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-ink-strong tracking-tight mb-5">
+        Ready to try it?
+      </h2>
+      <p class="text-lg text-ink-muted mb-10 max-w-xl mx-auto">
+        15-minute demo with me. I'll show you how Dovvia works for Mike and answer all your questions. No commitment.
+      </p>
+      <!-- TODO: replace with your real Calendly URL -->
+      <a href="https://calendly.com/YOUR-CALENDLY-LINK/15min" target="_blank" rel="noopener" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-8 py-4 rounded-xl shadow-pop transition text-lg">
+        Book a demo
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+      <p class="text-sm text-ink-muted mt-6">
+        Or email me directly — <a href="mailto:hi@getdovvia.com" class="text-brand-600 hover:text-brand-700 font-semibold">hi@getdovvia.com</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="bg-ink-strong text-slate-400 px-5 sm:px-6 lg:px-8 py-10">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+      <div class="flex items-center gap-2">
+        <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <span class="font-bold text-white">Dovvia</span>
+        <span class="text-slate-500">© 2026</span>
+      </div>
+      <div class="flex items-center gap-5">
+        <a href="/" class="hover:text-white transition" hreflang="ru">Русский</a>
+        <a href="https://app.getdovvia.com/login" class="hover:text-white transition">Sign in</a>
+        <a href="mailto:hi@getdovvia.com" class="hover:text-white transition">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.querySelectorAll('Step').forEach((el, i) => {
+      const n = el.getAttribute('n') || String(i + 1)
+      const wrap = document.createElement('div')
+      wrap.className = 'bg-white rounded-2xl p-7 shadow-card relative'
+      wrap.innerHTML = `
+        <div class="absolute -top-4 left-7 h-9 w-9 rounded-xl bg-brand-500 text-white font-bold flex items-center justify-center shadow-card">${n}</div>
+        <div class="pt-3">${el.innerHTML}</div>
+      `
+      el.replaceWith(wrap)
+    })
+    document.querySelectorAll('Feat').forEach(el => {
+      const li = document.createElement('li')
+      li.className = 'flex items-start gap-2 text-ink-base'
+      li.innerHTML = `
+        <svg class="text-mint-700 mt-0.5 shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>${el.innerHTML}</span>
+      `
+      el.replaceWith(li)
+    })
+  </script>
+
+</body>
+</html>
