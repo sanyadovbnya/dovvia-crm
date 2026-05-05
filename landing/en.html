@@ -100,6 +100,46 @@
       .flow-card, .flow-card.in-view { opacity: 1; transform: none; transition: none; }
       .ring-pulse, .ring-shake, .wave-bar, .slot-booked, .email-card { animation: none; }
     }
+
+    /* ===== Pain-point cards ===== */
+    @keyframes role-out {
+      0%, 40% { opacity: 1; transform: translateY(0) scale(1); }
+      50%, 95% { opacity: 0; transform: translateY(-8px) scale(0.92); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes role-in {
+      0%, 40% { opacity: 0; transform: translateY(8px) scale(0.92); }
+      50%, 95% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(8px) scale(0.92); }
+    }
+    .role-old { animation: role-out 3.5s ease-in-out infinite; }
+    .role-new { animation: role-in  3.5s ease-in-out infinite; }
+
+    @keyframes customer-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.0); background-color: rgba(16, 185, 129, 0.0); }
+      50%      { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18); background-color: rgba(16, 185, 129, 0.12); }
+    }
+    .customer-pulse { animation: customer-pulse 2.6s ease-in-out infinite; }
+
+    @keyframes bubble-cascade {
+      0%, 5%   { opacity: 0; transform: translateY(10px); }
+      18%, 70% { opacity: 1; transform: translateY(0); }
+      85%, 100% { opacity: 0; transform: translateY(-8px); }
+    }
+    .bubble { animation: bubble-cascade 3.2s ease-in-out infinite; }
+    .bubble-2 { animation-delay: 0.35s; }
+    .bubble-3 { animation-delay: 0.70s; }
+
+    @keyframes clock-spin { to { transform: rotate(360deg); } }
+    .clock-hand-h { transform-origin: 40px 40px; animation: clock-spin 12s linear infinite; }
+    .clock-hand-m { transform-origin: 40px 40px; animation: clock-spin 2s linear infinite; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .role-old, .role-new, .customer-pulse, .bubble,
+      .clock-hand-h, .clock-hand-m { animation: none; }
+      .role-new { opacity: 1; }
+      .role-old { opacity: 0; }
+    }
   </style>
 </head>
 <body class="bg-white text-ink-base">
@@ -168,9 +208,9 @@
       </div>
       <div class="grid sm:grid-cols-3 gap-5">
         <div class="bg-white rounded-2xl p-7 shadow-card">
-          <p class="text-4xl font-extrabold text-brand-600 mb-2">12+</p>
+          <p class="text-4xl font-extrabold text-brand-600 mb-2">6+</p>
           <p class="font-semibold text-ink-strong mb-1">calls per day</p>
-          <p class="text-sm text-ink-muted">into the average shop — most while you're working.</p>
+          <p class="text-sm text-ink-muted">into the average small business — most while you're with another customer.</p>
         </div>
         <div class="bg-white rounded-2xl p-7 shadow-card">
           <p class="text-4xl font-extrabold text-brand-600 mb-2">35%</p>
@@ -186,8 +226,94 @@
     </div>
   </section>
 
+  <!-- ========== PAIN POINTS — "Sound familiar?" ========== -->
+  <section class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
+          Sound familiar?
+        </h2>
+        <p class="text-ink-muted max-w-2xl mx-auto">
+          Every small business owner runs into these. Max handles all of them.
+        </p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <!-- Pain 1 — Wearing too many hats -->
+        <div class="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
+          <div class="h-32 mb-4 bg-surface-page rounded-xl flex items-center justify-center px-3">
+            <div class="flex items-center gap-1.5 flex-wrap justify-center">
+              <span class="text-[11px] font-bold bg-white text-ink-strong px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">👔 Owner</span>
+              <span class="text-[11px] font-bold bg-white text-ink-strong px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">🔧 Tech</span>
+              <span class="text-[11px] font-bold bg-white text-ink-strong px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">📊 Books</span>
+              <span class="relative inline-flex" style="min-width: 76px; height: 22px;">
+                <span class="role-old absolute inset-0 inline-flex items-center justify-center text-[11px] font-bold bg-pastel-coral text-pastel-coralDeep px-2.5 py-1 rounded-full whitespace-nowrap">📞 Phone</span>
+                <span class="role-new absolute inset-0 inline-flex items-center justify-center text-[11px] font-bold bg-pastel-mint text-pastel-mintDeep px-2.5 py-1 rounded-full whitespace-nowrap">🤖 Max</span>
+              </span>
+            </div>
+          </div>
+          <h3 class="text-base font-bold text-ink-strong mb-1.5">Wearing too many hats?</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Owner. Technician. Bookkeeper. AND receptionist? Max takes the phones off your plate.</p>
+        </div>
+
+        <!-- Pain 2 — Spam call filter -->
+        <div class="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
+          <div class="h-32 mb-4 bg-surface-page rounded-xl flex items-center p-3">
+            <div class="w-full space-y-1.5 text-[12px]">
+              <div class="flex items-center gap-2 px-2 py-1 opacity-60">
+                <span class="text-rose-600 font-bold">✕</span>
+                <span class="text-ink-muted line-through flex-1">Robocall</span>
+              </div>
+              <div class="flex items-center gap-2 px-2 py-1 opacity-60">
+                <span class="text-rose-600 font-bold">✕</span>
+                <span class="text-ink-muted line-through flex-1">Spam</span>
+              </div>
+              <div class="customer-pulse flex items-center gap-2 px-2 py-1 rounded-md">
+                <span class="text-emerald-600 font-bold">✓</span>
+                <span class="text-ink-strong font-semibold flex-1">Customer</span>
+              </div>
+            </div>
+          </div>
+          <h3 class="text-base font-bold text-ink-strong mb-1.5">Tired of spam calls?</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Max politely turns away spammers and robocalls. You only hear about real customers.</p>
+        </div>
+
+        <!-- Pain 3 — Repetitive questions -->
+        <div class="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
+          <div class="h-32 mb-4 bg-surface-page rounded-xl flex flex-col gap-1.5 items-start justify-center p-3 overflow-hidden">
+            <div class="bubble bubble-1 bg-white text-[11px] text-ink-strong px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap">"What are your hours?"</div>
+            <div class="bubble bubble-2 bg-white text-[11px] text-ink-strong px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap">"How much do you charge?"</div>
+            <div class="bubble bubble-3 bg-white text-[11px] text-ink-strong px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap">"Where are you located?"</div>
+          </div>
+          <h3 class="text-base font-bold text-ink-strong mb-1.5">Same question, 50 times a day?</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Max knows your hours, prices, services, and address — so you don't have to repeat yourself.</p>
+        </div>
+
+        <!-- Pain 4 — 24/7 availability -->
+        <div class="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
+          <div class="h-32 mb-4 bg-surface-page rounded-xl flex items-center justify-center">
+            <div class="relative">
+              <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#E2E8F0" stroke-width="2.5"/>
+                <g fill="#E8952E"><circle cx="40" cy="9" r="2"/><circle cx="63" cy="17" r="2"/><circle cx="71" cy="40" r="2"/><circle cx="63" cy="63" r="2"/><circle cx="40" cy="71" r="2"/><circle cx="17" cy="63" r="2"/><circle cx="9" cy="40" r="2"/><circle cx="17" cy="17" r="2"/></g>
+                <line class="clock-hand-h" x1="40" y1="40" x2="40" y2="22" stroke="#0F172A" stroke-width="3" stroke-linecap="round"/>
+                <line class="clock-hand-m" x1="40" y1="40" x2="56" y2="40" stroke="#0F172A" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="40" cy="40" r="3" fill="#0F172A"/>
+              </svg>
+              <span class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">24/7</span>
+            </div>
+          </div>
+          <h3 class="text-base font-bold text-ink-strong mb-1.5">Calls at 9pm? Weekends? 5am?</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Max never sleeps. Books an 11pm call as easily as an 11am one.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <!-- ========== HOW IT WORKS — animated step-by-step flow ========== -->
-  <section id="how" class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+  <section id="how" class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24 border-t border-slate-100">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-14">
         <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
@@ -402,7 +528,7 @@
         Hey, I'm Alex.
       </h2>
       <p class="text-ink-base text-lg leading-relaxed">
-        I built Dovvia because my dad Mike fixes appliances — washers, fridges, dishwashers — and was losing customers every time he couldn't get to the phone while on a service call. Now Dovvia works for him 24/7. Built for any business where customers call to book — repair shops, contractors, salons, clinics, cleaning crews, you name it.
+        I built Dovvia because my friends running their own businesses couldn't keep up with all the phone calls — including my dad Mike with his appliance repair business. Now Dovvia works for them 24/7. Built for any business where customers call to book — repair shops, contractors, salons, clinics, cleaning crews, you name it.
       </p>
       <p class="text-ink-base text-lg leading-relaxed mt-3">
         These first 5 customers are mine. I personally onboard each one and stay on call for the first month. Talk to me.

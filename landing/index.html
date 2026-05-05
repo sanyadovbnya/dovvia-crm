@@ -107,6 +107,50 @@
       .flow-card, .flow-card.in-view { opacity: 1; transform: none; transition: none; }
       .ring-pulse, .ring-shake, .wave-bar, .slot-booked, .email-card { animation: none; }
     }
+
+    /* ===== Pain-point cards ===== */
+    /* Card 1 — "Phone" role chip swaps with "Max" chip every 3.5s. */
+    @keyframes role-out {
+      0%, 40% { opacity: 1; transform: translateY(0) scale(1); }
+      50%, 95% { opacity: 0; transform: translateY(-8px) scale(0.92); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes role-in {
+      0%, 40% { opacity: 0; transform: translateY(8px) scale(0.92); }
+      50%, 95% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(8px) scale(0.92); }
+    }
+    .role-old { animation: role-out 3.5s ease-in-out infinite; }
+    .role-new { animation: role-in  3.5s ease-in-out infinite; }
+
+    /* Card 2 — customer row gets a pulse highlight every 2.6s. */
+    @keyframes customer-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.0); background-color: rgba(16, 185, 129, 0.0); }
+      50%      { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18); background-color: rgba(16, 185, 129, 0.12); }
+    }
+    .customer-pulse { animation: customer-pulse 2.6s ease-in-out infinite; }
+
+    /* Card 3 — speech bubbles cascade in then out, looping. */
+    @keyframes bubble-cascade {
+      0%, 5%   { opacity: 0; transform: translateY(10px); }
+      18%, 70% { opacity: 1; transform: translateY(0); }
+      85%, 100% { opacity: 0; transform: translateY(-8px); }
+    }
+    .bubble { animation: bubble-cascade 3.2s ease-in-out infinite; }
+    .bubble-2 { animation-delay: 0.35s; }
+    .bubble-3 { animation-delay: 0.70s; }
+
+    /* Card 4 — clock hands rotate. */
+    @keyframes clock-spin { to { transform: rotate(360deg); } }
+    .clock-hand-h { transform-origin: 40px 40px; animation: clock-spin 12s linear infinite; }
+    .clock-hand-m { transform-origin: 40px 40px; animation: clock-spin 2s linear infinite; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .role-old, .role-new, .customer-pulse, .bubble,
+      .clock-hand-h, .clock-hand-m { animation: none; }
+      .role-new { opacity: 1; }
+      .role-old { opacity: 0; }
+    }
   </style>
 </head>
 <body class="bg-white text-ink-base">
@@ -176,9 +220,9 @@
       </div>
       <div class="grid sm:grid-cols-3 gap-5">
         <div class="bg-white rounded-2xl p-7 shadow-card">
-          <p class="text-4xl font-extrabold text-brand-600 mb-2">12+</p>
+          <p class="text-4xl font-extrabold text-brand-600 mb-2">6+</p>
           <p class="font-semibold text-ink-strong mb-1">звонков в день</p>
-          <p class="text-sm text-ink-muted">в среднюю мастерскую — большинство во время работы.</p>
+          <p class="text-sm text-ink-muted">в среднем в малом бизнесе — большинство пока вы заняты работой.</p>
         </div>
         <div class="bg-white rounded-2xl p-7 shadow-card">
           <p class="text-4xl font-extrabold text-brand-600 mb-2">35%</p>
@@ -194,8 +238,94 @@
     </div>
   </section>
 
+  <!-- ========== PAIN POINTS — "Sound familiar?" ========== -->
+  <section class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
+          Звучит знакомо?
+        </h2>
+        <p class="text-ink-muted max-w-2xl mx-auto">
+          Каждый владелец малого бизнеса сталкивается с этим. Max берёт всё на себя.
+        </p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+        <!-- Pain 1 — Wearing too many hats -->
+        <div class="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
+          <div class="h-32 mb-4 bg-surface-page rounded-xl flex items-center justify-center px-3">
+            <div class="flex items-center gap-1.5 flex-wrap justify-center">
+              <span class="text-[11px] font-bold bg-white text-ink-strong px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">👔 Хозяин</span>
+              <span class="text-[11px] font-bold bg-white text-ink-strong px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">🔧 Мастер</span>
+              <span class="text-[11px] font-bold bg-white text-ink-strong px-2.5 py-1 rounded-full shadow-sm whitespace-nowrap">📊 Учёт</span>
+              <span class="relative inline-flex" style="min-width: 86px; height: 22px;">
+                <span class="role-old absolute inset-0 inline-flex items-center justify-center text-[11px] font-bold bg-pastel-coral text-pastel-coralDeep px-2.5 py-1 rounded-full whitespace-nowrap">📞 Звонки</span>
+                <span class="role-new absolute inset-0 inline-flex items-center justify-center text-[11px] font-bold bg-pastel-mint text-pastel-mintDeep px-2.5 py-1 rounded-full whitespace-nowrap">🤖 Max</span>
+              </span>
+            </div>
+          </div>
+          <h3 class="text-base font-bold text-ink-strong mb-1.5">Носите 10 шапок одновременно?</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Хозяин. Мастер. Бухгалтер. И ещё секретарь? Max снимает телефон с ваших плеч.</p>
+        </div>
+
+        <!-- Pain 2 — Spam call filter -->
+        <div class="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
+          <div class="h-32 mb-4 bg-surface-page rounded-xl flex items-center p-3">
+            <div class="w-full space-y-1.5 text-[12px]">
+              <div class="flex items-center gap-2 px-2 py-1 opacity-60">
+                <span class="text-rose-600 font-bold">✕</span>
+                <span class="text-ink-muted line-through flex-1">Робозвонок</span>
+              </div>
+              <div class="flex items-center gap-2 px-2 py-1 opacity-60">
+                <span class="text-rose-600 font-bold">✕</span>
+                <span class="text-ink-muted line-through flex-1">Спам</span>
+              </div>
+              <div class="customer-pulse flex items-center gap-2 px-2 py-1 rounded-md">
+                <span class="text-emerald-600 font-bold">✓</span>
+                <span class="text-ink-strong font-semibold flex-1">Клиент</span>
+              </div>
+            </div>
+          </div>
+          <h3 class="text-base font-bold text-ink-strong mb-1.5">Устали от спам-звонков?</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Max вежливо отсеивает спам и роботов. Вам приходят только настоящие клиенты.</p>
+        </div>
+
+        <!-- Pain 3 — Repetitive questions -->
+        <div class="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
+          <div class="h-32 mb-4 bg-surface-page rounded-xl flex flex-col gap-1.5 items-start justify-center p-3 overflow-hidden">
+            <div class="bubble bubble-1 bg-white text-[11px] text-ink-strong px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap">«Какие часы работы?»</div>
+            <div class="bubble bubble-2 bg-white text-[11px] text-ink-strong px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap">«Сколько стоит?»</div>
+            <div class="bubble bubble-3 bg-white text-[11px] text-ink-strong px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap">«Где находитесь?»</div>
+          </div>
+          <h3 class="text-base font-bold text-ink-strong mb-1.5">Один и тот же вопрос 50 раз в день?</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Max знает ваше расписание, цены, услуги и адрес. Не повторяйте одно и то же по 10 раз.</p>
+        </div>
+
+        <!-- Pain 4 — 24/7 availability -->
+        <div class="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
+          <div class="h-32 mb-4 bg-surface-page rounded-xl flex items-center justify-center">
+            <div class="relative">
+              <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden="true">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#E2E8F0" stroke-width="2.5"/>
+                <g fill="#E8952E"><circle cx="40" cy="9" r="2"/><circle cx="63" cy="17" r="2"/><circle cx="71" cy="40" r="2"/><circle cx="63" cy="63" r="2"/><circle cx="40" cy="71" r="2"/><circle cx="17" cy="63" r="2"/><circle cx="9" cy="40" r="2"/><circle cx="17" cy="17" r="2"/></g>
+                <line class="clock-hand-h" x1="40" y1="40" x2="40" y2="22" stroke="#0F172A" stroke-width="3" stroke-linecap="round"/>
+                <line class="clock-hand-m" x1="40" y1="40" x2="56" y2="40" stroke="#0F172A" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="40" cy="40" r="3" fill="#0F172A"/>
+              </svg>
+              <span class="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">24/7</span>
+            </div>
+          </div>
+          <h3 class="text-base font-bold text-ink-strong mb-1.5">Звонки в 9 вечера? В выходные? В 5 утра?</h3>
+          <p class="text-sm text-ink-muted leading-relaxed">Max не спит. Бронирует приёмы в 11 вечера так же легко, как в 11 утра.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <!-- ========== HOW IT WORKS — animated step-by-step flow ========== -->
-  <section id="how" class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24">
+  <section id="how" class="px-5 sm:px-6 lg:px-8 py-16 sm:py-24 border-t border-slate-100">
     <div class="max-w-6xl mx-auto">
       <div class="text-center mb-14">
         <h2 class="text-3xl sm:text-4xl font-bold text-ink-strong tracking-tight mb-3">
@@ -417,7 +547,7 @@
         Привет, я Алекс.
       </h2>
       <p class="text-ink-base text-lg leading-relaxed">
-        Я построил Dovvia потому что мой папа Майк ремонтирует бытовую технику — стиральные машины, холодильники, посудомойки — и терял клиентов каждый раз, когда не мог ответить на звонок с вызова. Сейчас Dovvia работает для него 24/7. Подходит для любого бизнеса, где звонят клиенты — от автомастерских до клининга, от салонов красоты до ветклиник.
+        Я построил Dovvia потому что мои друзья со своими бизнесами не успевали отвечать на все звонки — включая моего папу Майка с его бизнесом по ремонту бытовой техники. Сейчас Dovvia работает для них 24/7. Подходит для любого бизнеса, где звонят клиенты — от автомастерских до клининга, от салонов красоты до ветклиник.
       </p>
       <p class="text-ink-base text-lg leading-relaxed mt-3">
         Это первые 5 клиентов — ваши. Я лично подключаю каждого и помогаю первый месяц. Напишите мне.
