@@ -33,18 +33,17 @@ function json(body: unknown, status = 200) {
   })
 }
 
-// Hard-coded Stripe Price IDs. These are NOT secrets (visible on every
-// Checkout page), but typos would silently break Checkout. Keep aligned
-// with Stripe Dashboard → Products.
-const PRICE_SETUP   = 'price_1TTUTPK2QsCqT7BRURqd4CJl'  // $500 one-time
-const PRICE_STARTER = 'price_1TTUUEK2QsCqT7BRg2hYLYDk'  // $149/mo
-const PRICE_PRO     = 'price_1TTUUeK2QsCqT7BRYlWk7ZBv'  // $349/mo
-const PRICE_MULTI   = 'price_1TTUVQK2QsCqT7BRdYlYnKUj'  // $799/mo
-
-const PLAN_PRICES: Record<string, string> = {
-  starter:      PRICE_STARTER,
-  pro:          PRICE_PRO,
-  'multi-shop': PRICE_MULTI,
+// Stripe Price IDs come from env so the same code runs in test and live
+// without redeploys. Set these in Supabase → Edge Function Secrets:
+//   STRIPE_PRICE_SETUP   — one-time $500 setup fee
+//   STRIPE_PRICE_STARTER — recurring $149/mo
+//   STRIPE_PRICE_PRO     — recurring $349/mo
+//   STRIPE_PRICE_MULTI   — recurring $799/mo
+// Test-mode and live-mode price IDs are different — match the mode of
+// your STRIPE_SECRET_KEY (sk_test_… vs sk_live_…) or Stripe will reject
+// the Checkout session.
+function priceId(name: string): string | null {
+  return Deno.env.get(name) || null
 }
 
 Deno.serve(async (req) => {
@@ -58,6 +57,22 @@ Deno.serve(async (req) => {
   const appUrl      = Deno.env.get('APP_URL') || 'https://app.getdovvia.com'
   if (!supabaseUrl || !serviceKey || !anonKey || !stripeKey) {
     return json({ ok: false, error: 'server not configured' }, 500)
+  }
+
+  // Resolve plan → price IDs from env. We check this here (not at module
+  // top) so a missing env var returns a useful error to the client
+  // instead of a cryptic startup crash.
+  const PRICE_SETUP   = priceId('STRIPE_PRICE_SETUP')
+  const PRICE_STARTER = priceId('STRIPE_PRICE_STARTER')
+  const PRICE_PRO     = priceId('STRIPE_PRICE_PRO')
+  const PRICE_MULTI   = priceId('STRIPE_PRICE_MULTI')
+  if (!PRICE_SETUP || !PRICE_STARTER || !PRICE_PRO || !PRICE_MULTI) {
+    return json({ ok: false, error: 'price ids not configured — set STRIPE_PRICE_SETUP/STARTER/PRO/MULTI in edge function secrets' }, 500)
+  }
+  const PLAN_PRICES: Record<string, string> = {
+    starter:      PRICE_STARTER,
+    pro:          PRICE_PRO,
+    'multi-shop': PRICE_MULTI,
   }
 
   // Resolve user from JWT (anon-key client + bearer header)
